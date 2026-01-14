@@ -13,6 +13,18 @@ Launch the master dashboard:
 
 ---
 
+## 📚 Documentation
+Detailed documentation for each module is available in the `docs/` folder:
+
+*   [**Main Toolbox**](docs/SysAdminToolbox.md): The menu-driven interface.
+*   [**Maintenance Tools**](docs/Maintenance_Tools.md): Disk Cleanup, Windows/App Updates.
+*   [**Security Tools**](docs/Security_Tools.md): Auditing, Firewalls, Port Scanning.
+*   [**Monitoring Tools**](docs/Monitoring_Tools.md): Reports, Disk Space Alerts.
+*   [**WSL Tools**](docs/WSL_Tools.md): Network fixes, VHDX shrinking.
+*   [**Management Tools**](docs/Management_Tools.md): Startup App management.
+
+---
+
 ### 🛡️ Safety First
 *   **Auto-Elevation**: Scripts automatically request Admin privileges if needed.
 
