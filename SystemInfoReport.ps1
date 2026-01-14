@@ -6,13 +6,11 @@
     Outputs to a file or console (DryRun).
 .PARAMETER ReportPath
     Full path to the output report file. Defaults to Desktop\system_config_report.txt.
-.PARAMETER DryRun
-    If specified, prints the report to the console instead of writing to a file.
+
 #>
 [CmdletBinding()]
 param (
-    [string]$ReportPath = (Join-Path ([Environment]::GetFolderPath("Desktop")) "system_config_report.txt"),
-    [switch]$DryRun
+    [string]$ReportPath = (Join-Path ([Environment]::GetFolderPath("Desktop")) "system_config_report.txt")
 )
 
 Write-Host "Gathering System Information..." -ForegroundColor Cyan
@@ -54,15 +52,10 @@ Get-CimInstance -ClassName Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3
 }
 
 # Output
-if ($DryRun) {
-    Write-Host "--- [DryRun] Report Content Preview ---" -ForegroundColor Magenta
-    $reportContent | ForEach-Object { Write-Host $_ }
-    Write-Host "---------------------------------------" -ForegroundColor Magenta
-} else {
-    try {
-        $reportContent | Out-File -FilePath $ReportPath -Encoding UTF8
-        Write-Host "System configuration report saved to: $ReportPath" -ForegroundColor Green
-    } catch {
-        Write-Error "Failed to save report: $($_.Exception.Message)"
-    }
+try {
+    $reportContent | Out-File -FilePath $ReportPath -Encoding UTF8
+    Write-Host "System configuration report saved to: $ReportPath" -ForegroundColor Green
+}
+catch {
+    Write-Error "Failed to save report: $($_.Exception.Message)"
 }

@@ -13,14 +13,9 @@ Launch the master dashboard:
 
 ---
 
-## 🌟 Key Features
-
 ### 🛡️ Safety First
 *   **Auto-Elevation**: Scripts automatically request Admin privileges if needed.
-*   **Dry-Run Mode**: Passed globally. Run with `-DryRun` to simulate actions without changing a single bit.
-    ```powershell
-    .\SysAdminToolbox.ps1 -DryRun
-    ```
+
 
 ### 📊 Intelligent Reporting
 *   **Before/After Scans**: Tools like `DiskCleanup` and `WSL Shrink` report exactly how much space you reclaimed.

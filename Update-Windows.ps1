@@ -5,13 +5,11 @@
     Installs the PSWindowsUpdate module if missing, then scans and installs updates.
 .PARAMETER AutoReboot
     If set, automatically reboots if required by updates. Default is False.
-.PARAMETER DryRun
-    If set, scans for updates but does not install them.
+
 #>
 [CmdletBinding()]
 param (
-    [boolean]$AutoReboot = $false,
-    [switch]$DryRun
+    [boolean]$AutoReboot = $false
 )
 
 # --- Admin Check ---
@@ -27,14 +25,6 @@ Write-Host "Checking for PSWindowsUpdate module..." -ForegroundColor Cyan
 
 # Check/Install Module
 if (-not (Get-Module -ListAvailable -Name PSWindowsUpdate)) {
-    if ($DryRun) {
-        Write-Host "[DryRun] Would install PSWindowsUpdate module." -ForegroundColor Magenta
-        # Without the module, we can't really scan, so we might exit or mock the scan.
-        # For this script, let's assume we can't proceed with a real scan without the module.
-        Write-Warning "PSWindowsUpdate module is missing. Cannot simulate scan in DryRun without it."
-        exit 0
-    }
-    
     try {
         Install-Module -Name PSWindowsUpdate -Force -Scope CurrentUser -AllowClobber -ErrorAction Stop
         Write-Host "PSWindowsUpdate module installed." -ForegroundColor Green
@@ -64,21 +54,18 @@ try {
         Write-Host "$($updates.Count) update(s) found." -ForegroundColor Yellow
         $updates | Select-Object KB, Title, Size | Format-Table -AutoSize
 
-        if ($DryRun) {
-            Write-Host "[DryRun] Would install updates with AutoReboot=$AutoReboot" -ForegroundColor Magenta
-        } else {
-            Write-Host "Installing updates..." -ForegroundColor Cyan
-            $params = @{
-                MicrosoftUpdate = $true
-                AcceptAll = $true
-                ErrorAction = "Stop"
-            }
-            if ($AutoReboot) { $params.Add('AutoReboot', $true) }
-            
-            Install-WindowsUpdate @params
-            Write-Host "Updates installed." -ForegroundColor Green
+        Write-Host "Installing updates..." -ForegroundColor Cyan
+        $params = @{
+            MicrosoftUpdate = $true
+            AcceptAll       = $true
+            ErrorAction     = "Stop"
         }
-    } else {
+        if ($AutoReboot) { $params.Add('AutoReboot', $true) }
+        
+        Install-WindowsUpdate @params
+        Write-Host "Updates installed." -ForegroundColor Green
+    }
+    else {
         Write-Host "No updates available." -ForegroundColor Green
     }
 }

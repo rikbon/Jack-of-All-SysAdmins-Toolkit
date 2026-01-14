@@ -9,15 +9,13 @@
     Only list available updates.
 .PARAMETER SkipPackages
     Comma-separated list of package IDs to skip.
-.PARAMETER DryRun
-    If set, shows what commands would be executed.
+
 #>
 [CmdletBinding()]
 param (
     [switch]$QuietMode,
     [switch]$ListOnly,
-    [string]$SkipPackages,
-    [switch]$DryRun
+    [string]$SkipPackages
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,9 +31,7 @@ $logFile = "$env:TEMP\winget_upgrade_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 function Log {
     param ([string]$Message)
     $entry = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') - $Message"
-    if (-not $DryRun) {
-        $entry | Out-File -FilePath $logFile -Append -Encoding UTF8
-    }
+    $entry | Out-File -FilePath $logFile -Append -Encoding UTF8
     if (-not $QuietMode) { Write-Output $Message }
 }
 
@@ -48,27 +44,33 @@ if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
 }
 
 # Create Restore Point
-if (-not $ListOnly -and -not $DryRun) {
+if (-not $ListOnly) {
     Log "Creating System Restore Point..."
     try {
         Checkpoint-Computer -Description "Before Winget Upgrade" -RestorePointType MODIFY_SETTINGS -ErrorAction Stop
-    } catch {
+    }
+    catch {
         Log "Failed to create restore point: $($_.Exception.Message)"
     }
-} elseif ($DryRun) {
-    Log "[DryRun] Would create System Restore Point."
 }
 
 # Get Upgradable Packages Direct Approach (Simpler than export/import for just upgrading)
 Log "Checking for available updates..."
-if ($DryRun) {
-    Log "[DryRun] winget upgrade"
-    $upgradable = @() # Mock empty for dry run to strictly avoiding running winget list if it takes time, or we could run it.
-    # Actually, running 'winget upgrade' without arguments lists updates. safe to run.
-    winget upgrade
-} else {
-    # We can rely on 'winget upgrade --all' but user wanted excluding.
-    # Let's get the list first.
+
+# Refresh Winget Sources (Fixes 404 errors)
+Log "Maintenance: Checking Winget sources..."
+# Capture output to check for errors/404s
+$sourceUpdateOut = winget source update 2>&1
+$sourceUpdateStr = $sourceUpdateOut | Out-String
+
+if ($LASTEXITCODE -ne 0 -or $sourceUpdateStr -match "0x80190194" -or $sourceUpdateStr -match "404") {
+    Log "Winget source corruption detected (404/Error). Attempting to reset sources..."
+    winget source reset --force | Out-Null
+    Log "Sources reset. Updating again..."
+    winget source update | Out-Null
+}
+else {
+    Log "Sources updated successfully."
 }
 
 # Strategy: Get list of upgradable apps
@@ -78,21 +80,19 @@ try {
     # Let's stick to the user's original logic flow but improved.
     
     $jsonFile = "$env:TEMP\winget_export_temp.json"
-    if ($DryRun) {
-        Log "[DryRun] Would export current apps to $jsonFile"
-    } else {
-        winget export -o $jsonFile --accept-source-agreements
+    
+    # Run winget export with error handling
+    $exportProc = Start-Process winget -ArgumentList "export -o `"$jsonFile`" --accept-source-agreements" -NoNewWindow -PassThru -Wait
+    
+    if ($exportProc.ExitCode -ne 0) {
+        Write-Warning "Winget export failed (ExitCode: $($exportProc.ExitCode)). This usually means a network issue or no installed packages found."
     }
 
     if (Test-Path $jsonFile) {
-        $data = Get-Content $jsonFile | ConvertFrom-Json
-        $packages = $data.Sources.PackageIdentifier
         Remove-Item $jsonFile -Force
-    } else {
-        # If dry run, we don't have file.
-        $packages = @() 
     }
-} catch {
+}
+catch {
     Log "Error getting package list: $($_.Exception.Message)"
     exit 1
 }
@@ -115,30 +115,77 @@ Log "Alternative Strategy: upgrading based on 'winget upgrade' availability."
 $rawUpgradeList = winget upgrade --accept-source-agreements
 # This output is text. "Name Id Version Available Source"
 
-# If we want to be safe and simple:
-if ($DryRun) {
-    Log "[DryRun] Would run: winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements"
-    if ($SkipPackages) { Log "[DryRun] Note: strict skipping is harder with bulk command, would iterate." }
-} else {
-    # If no skip packages, just bulk upgrade
-    if (-not $SkipPackages) {
-        winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements --silent
-    } else {
-        # Iterate approach
-        # This part is complex to implement perfectly without a proper object-oriented winget wrapper.
-        # Let's revert to a safer per-package upgrade if skipping is involved, 
-        # but only for packages that NEED upgrade.
+# Get list of ID's that need upgrade by running 'winget upgrade' and parsing raw output
+# We use --accept-source-agreements to ensure we get output even if prompts exist
+Log "Fetching list of available upgrades..."
+$upgradeOutput = winget upgrade --accept-source-agreements 2>&1 | Out-String
+
+# Parse the output to find IDs
+# Output format is usually: Name | Id | Version | Available | Source
+# We look for lines that look like package entries (not headers)
+$lines = $upgradeOutput -split "`r`n"
+$idsToUpgrade = @()
+
+foreach ($line in $lines) {
+    # Skip headers/empty lines
+    if ($line -match "^Name" -or $line -match "^-" -or [string]::IsNullOrWhiteSpace($line)) { continue }
+    
+    # Splitting by multiple spaces is a decent heuristic.
+    $parts = $line -split "\s{2,}"
+    if ($parts.Count -ge 2) {
+        # The ID is usually the second column
+        $id = $parts[1]
         
-        # For now, let's keep it simple: Bulk upgrade is usually what users want.
-        # If SkipPackages is set, we warn.
-        Write-Warning "SkipPackages is set but complex to implement reliably with raw winget CLI. Running bulk upgrade for now." 
-        # In a real scenario, I'd parse `winget upgrade` output.
-        # ...
-        # (Self-correction: Implementing a robust parser is beyond scope of a quick fix, 
-        # but I can provide the 'upgrade --all' command which fixes the '-h' bug).
-        
-        winget upgrade --all --include-unknown --accept-package-agreements --accept-source-agreements --silent
+        # Validation: ID shouldn't be a version number or too short.
+        # winget IDs usually contain dots or are alphanumeric.
+        if ($id -match "\." -and $id.Length -gt 2) {
+            $idsToUpgrade += $id
+        }
     }
 }
 
-Log "Upgrade process finished."
+if ($idsToUpgrade.Count -eq 0) {
+    Log "No upgradable packages identified (or parsing failed)."
+}
+else {
+    Log "Found $($idsToUpgrade.Count) packages to upgrade."
+    
+    foreach ($id in $idsToUpgrade) {
+        if ($SkipPackages -and $SkipPackages -match $id) {
+            Log "Skipping $id (Blacklisted)"
+            continue
+        }
+
+        Log "Upgrading $id..."
+        # Running iteratively allows one failure (404) to not block others
+        if (-not $QuietMode) {
+            winget upgrade --id $id --accept-package-agreements --accept-source-agreements --include-unknown
+        }
+        else {
+            winget upgrade --id $id --accept-package-agreements --accept-source-agreements --include-unknown | Out-Null
+        }
+        
+        if ($LASTEXITCODE -ne 0) {
+            Log "Failed to upgrade $id (Exit Code: $LASTEXITCODE). Continuing..."
+        }
+    }
+}
+
+Log "Winget upgrade process finished."
+
+# --- Chocolatey Upgrade ---
+if (Get-Command choco -ErrorAction SilentlyContinue) {
+    Log "Chocolatey detected. Checking for updates..."
+    try {
+        if (-not $QuietMode) {
+            choco upgrade all -y
+        }
+        else {
+            choco upgrade all -y | Out-Null
+        }
+        Log "Chocolatey upgrade complete."
+    }
+    catch {
+        Log "Chocolatey upgrade failed: $($_.Exception.Message)"
+    }
+}

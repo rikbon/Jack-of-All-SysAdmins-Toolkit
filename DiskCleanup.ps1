@@ -5,9 +5,9 @@
     Deletes files from %TEMP%, C:\Windows\Temp, and C:\Windows\Prefetch.
     Supports -WhatIf for dry-run.
 .EXAMPLE
-    .\DiskCleanup.ps1 -WhatIf
+    .\DiskCleanup.ps1
 #>
-[CmdletBinding(SupportsShouldProcess=$true)]
+[CmdletBinding()]
 param()
 
 # --- Admin Check ---
@@ -35,7 +35,6 @@ foreach ($folder in $foldersToClean) {
         
         foreach ($item in $items) {
             try {
-                # Remove-Item supports -WhatIf automatically because of CmdletBinding
                 Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction Stop
             }
             catch {
@@ -43,10 +42,9 @@ foreach ($folder in $foldersToClean) {
             }
         }
         
-        if (-not $WhatIfPreference) { 
-            Write-Host "  Cleaned: $folder (Reclaimed ~$sizeMB MB)" -ForegroundColor Green
-        }
-    } else {
+        Write-Host "  Cleaned: $folder (Reclaimed ~$sizeMB MB)" -ForegroundColor Green
+    }
+    else {
         Write-Warning "Folder not found: $folder"
     }
 }

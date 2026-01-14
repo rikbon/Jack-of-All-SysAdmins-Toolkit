@@ -5,9 +5,9 @@
     Restarts HNS, LxssManager, and vEthernet (WSL) adapter.
     Includes verification step.
 .EXAMPLE
-    .\wslNetworkFix.ps1 -WhatIf
+    .\wslNetworkFix.ps1
 #>
-[CmdletBinding(SupportsShouldProcess=$true)]
+[CmdletBinding()]
 param()
 
 # --- Admin Check ---
@@ -19,11 +19,11 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 $services = @("hns", "LxssManager")
 
 foreach ($service in $services) {
-    # Restart-Service supports -WhatIf automatically
     if (Get-Service -Name $service -ErrorAction SilentlyContinue) {
         Write-Host "Restarting service: $service" -ForegroundColor Cyan
         Restart-Service -Name $service -Force -ErrorAction SilentlyContinue
-    } else {
+    }
+    else {
         Write-Warning "Service $service not found."
     }
 }
@@ -33,19 +33,19 @@ $wslAdapterName = "vEthernet (WSL)"
 if (Get-NetAdapter -Name $wslAdapterName -ErrorAction SilentlyContinue) {
     Write-Host "Restarting Network Adapter: $wslAdapterName" -ForegroundColor Cyan
     Restart-NetAdapter -Name $wslAdapterName -ErrorAction SilentlyContinue
-} else {
+}
+else {
     Write-Warning "Adapter '$wslAdapterName' not found."
 }
 
 # Verification
-if (-not $WhatIfPreference) {
-    Write-Host "Verifying connectivity (Ping 8.8.8.8)..." -ForegroundColor Yellow
-    try {
-        $ping = Test-Connection -ComputerName 8.8.8.8 -Count 1 -ErrorAction Stop
-        if ($ping.Status -eq 'Success') {
-            Write-Host "Connectivity Verified." -ForegroundColor Green
-        }
-    } catch {
-        Write-Warning "Connectivity check failed. Please check your internet connection."
+Write-Host "Verifying connectivity (Ping 8.8.8.8)..." -ForegroundColor Yellow
+try {
+    $ping = Test-Connection -ComputerName 8.8.8.8 -Count 1 -ErrorAction Stop
+    if ($ping.Status -eq 'Success') {
+        Write-Host "Connectivity Verified." -ForegroundColor Green
     }
+}
+catch {
+    Write-Warning "Connectivity check failed. Please check your internet connection."
 }

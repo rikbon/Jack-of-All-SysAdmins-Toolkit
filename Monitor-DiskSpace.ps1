@@ -11,16 +11,14 @@
     Recipient email address.
 .PARAMETER FromAddress
     Sender email address.
-.PARAMETER DryRun
-    If specified, runs checks but does not send emails.
+
 #>
 [CmdletBinding()]
 param (
     [double]$ThresholdGB = 10,
     [string]$SmtpServer,
     [string]$ToAddress,
-    [string]$FromAddress,
-    [switch]$DryRun
+    [string]$FromAddress
 )
 
 # Retrieve filesystem drives
@@ -42,21 +40,16 @@ foreach ($drive in $drives) {
         $alertMsg = "Warning: Drive $($drive.Name) has less than $ThresholdGB GB free space!"
         Write-Warning $alertMsg
 
-        pass
         if ($SmtpServer -and $ToAddress -and $FromAddress) {
-            if ($DryRun) {
-                Write-Host "[DryRun] Would send email to $ToAddress: $alertMsg" -ForegroundColor Magenta
-            } else {
-                try {
-                    Send-MailMessage -From $FromAddress -To $ToAddress `
-                        -Subject "Low Disk Space Alert on $env:COMPUTERNAME" `
-                        -Body "$alertMsg`n$message" `
-                        -SmtpServer $SmtpServer
-                    Write-Host "Alert email sent." -ForegroundColor Green
-                }
-                catch {
-                    Write-Error "Failed to send email: $($_.Exception.Message)"
-                }
+            try {
+                Send-MailMessage -From $FromAddress -To $ToAddress `
+                    -Subject "Low Disk Space Alert on $env:COMPUTERNAME" `
+                    -Body "$alertMsg`n$message" `
+                    -SmtpServer $SmtpServer
+                Write-Host "Alert email sent." -ForegroundColor Green
+            }
+            catch {
+                Write-Error "Failed to send email: $($_.Exception.Message)"
             }
         }
     }
