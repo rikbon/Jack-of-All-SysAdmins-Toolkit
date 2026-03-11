@@ -3,7 +3,7 @@
 Tools to inspect system state and generate reports.
 
 ## 1. Monitor Disk Space
-**Script**: `Monitor-DiskSpace.ps1`
+**Script**: `Invoke-MonitorDiskSpace.ps1`
 
 ### Description
 Checks the free space of local drives (C:, D:, etc.). If space is below a threshold (default 10%), it can send an alert email.
@@ -14,7 +14,7 @@ Edit the script variables `$SmtpServer`, `$FromAddress`, and `$ToAddress` to ena
 ---
 
 ## 2. System Information Report
-**Script**: `SystemInfoReport.ps1`
+**Script**: `Get-SystemReport.ps1`
 
 ### Description
 Generates a comprehensive system report including:

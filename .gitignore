@@ -1,4 +1,28 @@
-/bkp_20260108
+# Environments / IDE
+.vscode/
+
+# Legacy / Unused Scripts
 /update.bat
 /build.ps1
-/Release
+/bkp_*
+
+# Builds / Releases
+/Release/
+*.zip
+*.7z
+*.rar
+
+# Logs & App Data
+/logs/
+*.log
+
+# System & Event Data
+*.dmp
+*.evtx
+*Report.txt
+
+# Temp & PowerShell data files
+*.bak
+*.tmp
+*.csv
+*.clixml

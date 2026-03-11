@@ -12,7 +12,7 @@ Cleans temporary files from standard locations (`%TEMP%`, `C:\Windows\Temp`, Pre
 ```powershell
 .\Invoke-DiskCleanup.ps1
 ```
-It returns a summary of the space claimed and logs results to the central log file.
+It displays a progress bar during scanning, returns a summary of the space claimed, and logs results to the central log file.
 
 ---
 
@@ -34,6 +34,7 @@ A wrapper around the `PSWindowsUpdate` module (installing it if missing). It sca
 Updates installed applications using **Winget** and **Chocolatey** (if installed).
 
 ### Key Features
+- **Parallel Scanning**: Uses PowerShell background jobs to check for Winget and Chocolatey updates simultaneously, speeding up the initial evaluation phase.
 - **Auto-Source Repair**: If Winget sources are corrupted (404 errors), it attempts to reset them.
 - **Robust Iteration**: Updates packages one by one so a single failure doesn't stop the batch.
 - **Shared Logging**: All progress and errors are recorded in the central `.\logs\Toolkit_YYYYMMDD.log`.

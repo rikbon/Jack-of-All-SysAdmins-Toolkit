@@ -20,7 +20,7 @@ Run the script from PowerShell. It will automatically attempt to elevate to Admi
 5.  **System Health & Troubleshooting**: Generate reports, run SFC/DISM, check Event Logs and BSOD Minidumps.
 6.  **Process & Performance**: Monitor resource usage, kill processes, and manage startup apps.
 7.  **Security & File Utilities**: Audit users, hash files, find large files, scan ports, and manage firewall rules.
-8.  **Logging & Auditing**: Audit user activity and archive event logs.
+8.  **Logging & Auditing**: Audit user activity, archive event logs, and rotate toolkit logs.
 
 ## Features
 - **Auto-Elevation**: Checks for Admin rights via `Assert-Admin` and relaunches itself with `RunAs` if needed.

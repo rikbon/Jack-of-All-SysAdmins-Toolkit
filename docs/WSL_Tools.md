@@ -3,7 +3,7 @@
 Utilities specifically for managing Windows Subsystem for Linux (WSL).
 
 ## 1. WSL Network Fix
-**Script**: `wslNetworkFix.ps1`
+**Script**: `Invoke-WSLNetworkFix.ps1`
 
 ### Description
 Fixes common WSL2 connectivity issues where the VM loses internet access.
@@ -17,7 +17,7 @@ Fixes common WSL2 connectivity issues where the VM loses internet access.
 ---
 
 ## 2. Shrink WSL Disk
-**Script**: `shrink_wsl.ps1`
+**Script**: `Invoke-ShrinkWSL.ps1`
 
 ### Description
 Reclaims disk space from WSL2 `.vhdx` virtual disk files. WSL disks grow dynamically but do not shrink automatically when files are deleted inside Linux.
@@ -25,5 +25,5 @@ Reclaims disk space from WSL2 `.vhdx` virtual disk files. WSL disks grow dynamic
 ### Actions
 1.  Locates all `.vhdx` files for registered WSL distros.
 2.  Terminates WSL (`wsl --shutdown`).
-3.  Uses `diskpart` to compact the VHDX file.
+3.  Uses `diskpart` to compact the VHDX file, displaying a progress bar during the operation.
 4.  Reports the size difference ("Space reclaimed").

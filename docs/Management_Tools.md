@@ -1,7 +1,7 @@
 # Management Tools
 
 ## 1. Startup App Manager
-**Script**: `Manage-StartupApps.ps1`
+**Script**: `Invoke-ManageStartupApps.ps1`
 
 ### Description
 Lists applications configured to start automatically with Windows.
@@ -12,4 +12,4 @@ Lists applications configured to start automatically with Windows.
 - Folder: `Shell:Startup`
 
 ### Usage
-Run usage via `SysAdminToolbox.ps1` (Menu 6 -> 4). It allows you to select an entry and **delete** it to prevent it from starting.
+Run usage via `Start-SysAdminToolbox.ps1` (Menu 6 -> 4). It allows you to select an entry and **delete** it to prevent it from starting.
