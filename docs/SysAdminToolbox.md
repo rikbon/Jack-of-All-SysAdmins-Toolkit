@@ -1,6 +1,6 @@
 # SysAdmin Toolbox (Main Menu)
 
-**Script**: `SysAdminToolbox.ps1`
+**Script**: `Start-SysAdminToolbox.ps1`
 
 ## Overview
 The **SysAdmin Toolbox** is the central hub for this suite of utilities. It provides a text-based, menu-driven interface to access all other scripts and built-in functions.
@@ -9,7 +9,7 @@ The **SysAdmin Toolbox** is the central hub for this suite of utilities. It prov
 Run the script from PowerShell. It will automatically attempt to elevate to Administrator privileges if not already running as Admin.
 
 ```powershell
-.\SysAdminToolbox.ps1
+.\Start-SysAdminToolbox.ps1
 ```
 
 ## Menu Structure
@@ -23,5 +23,5 @@ Run the script from PowerShell. It will automatically attempt to elevate to Admi
 8.  **Logging & Auditing**: Audit user activity and archive event logs.
 
 ## Features
-- **Auto-Elevation**: Checks for Admin rights and relaunches itself with `RunAs` if needed.
-- **Logging**: All actions performed via the menu are logged to `%TEMP%\SysAdminToolbox_YYYYMMDD.log`.
+- **Auto-Elevation**: Checks for Admin rights via `Assert-Admin` and relaunches itself with `RunAs` if needed.
+- **Standardized Logging**: All actions performed via the menu are logged to `.\logs\Toolkit_YYYYMMDD.log` using the shared `Write-Log` function.

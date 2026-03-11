@@ -7,11 +7,12 @@
 [CmdletBinding()]
 param ()
 
+# --- Load Globals ---
+$GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
+if (Test-Path $GlobalsPath) { . $GlobalsPath }
+
 # --- Admin Check ---
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
-    Write-Warning "Managing Firewall rules requires Administrator privileges. Please run as Administrator."
-    exit 1
-}
+Assert-Admin
 
 function Show-FirewallMenu {
     while ($true) {
@@ -26,16 +27,16 @@ function Show-FirewallMenu {
         $choice = Read-Host "Select an option"
         switch ($choice) {
             "1" {
-                Write-Host "Fetching blocking rules..."
+                Write-Log "Fetching blocking rules..." "INFO"
                 Get-NetFirewallRule | Where-Object { $_.Action -eq 'Block' -and $_.Enabled -eq 'True' } | 
-                    Select-Object DisplayName, Direction, Profile | Format-Table -AutoSize
+                Select-Object DisplayName, Direction, Profile | Format-Table -AutoSize
                 Pause
             }
             "2" {
                 $search = Read-Host "Enter search term"
                 if ($search) {
                     Get-NetFirewallRule | Where-Object { $_.DisplayName -match $search } | 
-                        Select-Object Name, DisplayName, Enabled, Action, Direction | Format-Table -AutoSize
+                    Select-Object Name, DisplayName, Enabled, Action, Direction | Format-Table -AutoSize
                 }
                 Pause
             }
@@ -46,12 +47,14 @@ function Show-FirewallMenu {
                     $ruleName = "Block_$name"
                     try {
                         New-NetFirewallRule -DisplayName "BLOCK $name" -Name $ruleName -Program $exePath -Action Block -Direction Outbound -ErrorAction Stop
-                        Write-Host "Rule created successfully: BLOCK $name (Outbound)" -ForegroundColor Green
-                    } catch {
-                        Write-Error "Failed to create rule: $($_.Exception.Message)"
+                        Write-Log "Rule created successfully: BLOCK $name (Outbound)" "SUCCESS"
                     }
-                } else {
-                    Write-Warning "Invalid path."
+                    catch {
+                        Write-Log "Failed to create rule: $($_.Exception.Message)" "ERROR"
+                    }
+                }
+                else {
+                    Write-Log "Invalid path." "WARN"
                 }
                 Pause
             }
@@ -62,13 +65,15 @@ function Show-FirewallMenu {
                         $rule = Get-NetFirewallRule -Name $ruleName -ErrorAction Stop
                         if ($rule.Enabled -eq 'True') {
                             Disable-NetFirewallRule -Name $ruleName
-                            Write-Host "Rule '$ruleName' Disabled." -ForegroundColor Yellow
-                        } else {
-                            Enable-NetFirewallRule -Name $ruleName
-                            Write-Host "Rule '$ruleName' Enabled." -ForegroundColor Green
+                            Write-Log "Rule '$ruleName' Disabled." "WARN"
                         }
-                    } catch {
-                        Write-Error "Rule not found or error accessing it."
+                        else {
+                            Enable-NetFirewallRule -Name $ruleName
+                            Write-Log "Rule '$ruleName' Enabled." "SUCCESS"
+                        }
+                    }
+                    catch {
+                        Write-Log "Rule not found or error accessing it." "ERROR"
                     }
                 }
                 Pause

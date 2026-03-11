@@ -9,34 +9,30 @@
 [CmdletBinding()]
 param()
 
+# --- Load Globals ---
+$GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
+if (Test-Path $GlobalsPath) {
+    . $GlobalsPath
+}
+else {
+    Write-Error "Globals.ps1 not found! Shared functions unavailable."
+    exit 1
+}
+
 # --- Auto-Elevation ---
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
+if (-not (Test-Admin)) {
+    Write-Log "Attempting to elevate..." "INFO"
     $argList = "-File `"$($MyInvocation.MyCommand.Path)`""
-    
     Start-Process -FilePath "PowerShell.exe" -ArgumentList $argList -Verb RunAs
     exit
 }
 
 # --- Configuration ---
 $ScriptDir = $PSScriptRoot
-$LogFile = "$env:TEMP\SysAdminToolbox_$(Get-Date -Format 'yyyyMMdd').log"
+# $LogFile = "$env:TEMP\SysAdminToolbox_$(Get-Date -Format 'yyyyMMdd').log" # Moved to Globals.ps1
 
 # --- Helper Functions ---
-function Write-Log {
-    param([string]$Message, [string]$Level = "INFO")
-    $timestamp = Get-Date -Format "HH:mm:ss"
-    $logEntry = "[$timestamp][$Level] $Message"
-    $logEntry | Out-File -FilePath $LogFile -Append -Encoding UTF8
-    
-    $color = switch ($Level) {
-        "INFO" { "White" }
-        "WARN" { "Yellow" }
-        "ERROR" { "Red" }
-        "SUCCESS" { "Green" }
-        default { "Gray" }
-    }
-    Write-Host $logEntry -ForegroundColor $color
-}
+# function Write-Log { ... } # Moved to Globals.ps1
 
 function Run-Script {
     param([string]$ScriptName, [string]$ScriptArgs)
@@ -93,7 +89,7 @@ function Show-NetworkMenu {
                 Get-NetTCPConnection | Where-Object State -eq Established | Select-Object LocalAddress, LocalPort, RemoteAddress, RemotePort, State, OwningProcess, CreationTime | Format-Table -AutoSize
                 Pause
             }
-            "5" { Run-Script "wslNetworkFix.ps1" }
+            "5" { Run-Script "Invoke-WSLNetworkFix.ps1" }
             "B" { return }
             "b" { return }
         }
@@ -111,8 +107,8 @@ function Show-LoggingMenu {
 
         $choice = Read-Host "Select"
         switch ($choice) {
-            "1" { Run-Script "Audit-UserActivity.ps1" }
-            "2" { Run-Script "Archive-EventLogs.ps1" }
+            "1" { Run-Script "Invoke-AuditUserActivity.ps1" }
+            "2" { Run-Script "Invoke-ArchiveEventLogs.ps1" }
             "B" { return }
             "b" { return }
         }
@@ -163,7 +159,7 @@ function Show-HealthMenu {
 
         $choice = Read-Host "Select an option"
         switch ($choice) {
-            "1" { Run-Script "SystemInfoReport.ps1" }
+            "1" { Run-Script "Get-SystemReport.ps1" }
             "2" {
                 sfc /verifyonly
                 Pause
@@ -252,7 +248,7 @@ function Show-ProcessMenu {
                 Pause
             }
             "4" {
-                Run-Script "Manage-StartupApps.ps1"
+                Run-Script "Invoke-ManageStartupApps.ps1"
             }
             "B" { return }
             "b" { return }
@@ -294,8 +290,8 @@ function Show-SecurityFileMenu {
                 }
                 Pause
             }
-            "4" { Run-Script "Test-PortScan.ps1" }
-            "5" { Run-Script "Manage-FirewallRules.ps1" }
+            "4" { Run-Script "Invoke-PortScan.ps1" }
+            "5" { Run-Script "Invoke-ManageFirewallRules.ps1" }
             "B" { return }
             "b" { return }
         }
@@ -305,14 +301,15 @@ function Show-SecurityFileMenu {
 # --- Main Menu ---
 function Show-MainMenu {
     # Check Admin Rights
-    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
-        Write-Warning "SysAdmin Toolbox requires Administrator privileges for most tasks."
-    }
+    # if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
+    #     Write-Warning "SysAdmin Toolbox requires Administrator privileges for most tasks."
+    # }
+    Assert-Admin
 
     while ($true) {
         Clear-Host
         Write-Host "===========================" -ForegroundColor Cyan
-        Write-Host " Jack-of-All-SysAdmins v1.0" -ForegroundColor Cyan
+        Write-Host " Jack-of-All-SysAdmins v1.2.1" -ForegroundColor Cyan
         Write-Host "===========================" -ForegroundColor Cyan
         Write-Host ""
 
@@ -335,9 +332,9 @@ function Show-MainMenu {
                     Write-Host "1. Disk Cleanup"; Write-Host "2. Windows Update"; Write-Host "3. App Updates (Winget/Choco)"; Write-Host "B. Back"
                     $s = Read-Host "Select"; if ($s -eq 'B') { break }
                     switch ($s) {
-                        "1" { Run-Script "DiskCleanup.ps1" }
-                        "2" { Run-Script "Update-Windows.ps1" }
-                        "3" { Run-Script "update.ps1" }
+                        "1" { Run-Script "Invoke-DiskCleanup.ps1" }
+                        "2" { Run-Script "Invoke-WindowsUpdate.ps1" }
+                        "3" { Run-Script "Invoke-AppUpdate.ps1" }
                     }
                 }
             }
@@ -347,8 +344,8 @@ function Show-MainMenu {
                     Write-Host "1. Monitor Disk Space"; Write-Host "2. Shrink WSL VHDX"; Write-Host "B. Back"
                     $s = Read-Host "Select"; if ($s -eq 'B') { break }
                     switch ($s) {
-                        "1" { Run-Script "Monitor-DiskSpace.ps1" }
-                        "2" { Run-Script "shrink_wsl.ps1" }
+                        "1" { Run-Script "Invoke-MonitorDiskSpace.ps1" }
+                        "2" { Run-Script "Invoke-ShrinkWSL.ps1" }
                     }
                 }
             }

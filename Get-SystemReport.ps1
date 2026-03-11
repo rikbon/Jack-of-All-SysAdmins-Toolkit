@@ -13,13 +13,23 @@ param (
     [string]$ReportPath = (Join-Path ([Environment]::GetFolderPath("Desktop")) "system_config_report.txt")
 )
 
-Write-Host "Gathering System Information..." -ForegroundColor Cyan
+# --- Load Globals ---
+$GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
+if (Test-Path $GlobalsPath) { . $GlobalsPath }
+
+Write-Log "Gathering System Information..." "INFO"
 
 # Gather Data using CIM (Modern replacement for WMI)
-$computerSys = Get-CimInstance -ClassName Win32_ComputerSystem
-$bios = Get-CimInstance -ClassName Win32_BIOS
-$cpu = Get-CimInstance -ClassName Win32_Processor | Select-Object -First 1
-$os = Get-CimInstance -ClassName Win32_OperatingSystem
+try {
+    $computerSys = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop
+    $bios = Get-CimInstance -ClassName Win32_BIOS -ErrorAction Stop
+    $cpu = Get-CimInstance -ClassName Win32_Processor -ErrorAction Stop | Select-Object -First 1
+    $os = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+}
+catch {
+    Write-Log "Failed to gather hardware info: $($_.Exception.Message)" "ERROR"
+    return
+}
 
 # Build the Report Content as an Array of Strings
 $reportContent = @()
@@ -53,9 +63,9 @@ Get-CimInstance -ClassName Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3
 
 # Output
 try {
-    $reportContent | Out-File -FilePath $ReportPath -Encoding UTF8
-    Write-Host "System configuration report saved to: $ReportPath" -ForegroundColor Green
+    $reportContent | Out-File -FilePath $ReportPath -Encoding UTF8 -ErrorAction Stop
+    Write-Log "System configuration report saved to: $ReportPath" "SUCCESS"
 }
 catch {
-    Write-Error "Failed to save report: $($_.Exception.Message)"
+    Write-Log "Failed to save report: $($_.Exception.Message)" "ERROR"
 }

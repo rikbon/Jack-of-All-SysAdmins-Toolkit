@@ -1,4 +1,4 @@
-# 🛠️ The Jack-of-All-SysAdmins Toolkit
+# 🛠️ The Jack-of-All-SysAdmins Toolkit `v1.2.1`
 
 > *One script to rule them all, one script to find them, one script to bring them all and in the terminal bind them.*
 
@@ -7,7 +7,7 @@ Welcome to **The Jack-of-All-SysAdmins Toolkit**. This project is a unified, men
 ## 🚀 Quick Start
 Launch the master dashboard:
 ```powershell
-.\SysAdminToolbox.ps1
+.\Start-SysAdminToolbox.ps1
 ```
 *(Run as Administrator for full power)*
 
@@ -26,18 +26,19 @@ Detailed documentation for each module is available in the `docs/` folder:
 ---
 
 ### 🛡️ Safety First
-*   **Auto-Elevation**: Scripts automatically request Admin privileges if needed.
+*   **Auto-Elevation**: Scripts automatically request Admin privileges if needed via `Assert-Admin`.
+*   **Standardized Naming**: All tools follow the `Verb-Noun.ps1` naming convention.
 
-
-### 📊 Intelligent Reporting
-*   **Before/After Scans**: Tools like `DiskCleanup` and `WSL Shrink` report exactly how much space you reclaimed.
-*   **Logs**: All actions are logged to `%TEMP%` for audit trails.
+### 📊 Intelligent Reporting & Logging
+*   **Centralized Logging**: All tools now log to `.\logs\Toolkit_YYYYMMDD.log` using a standardized `Write-Log` function.
+*   **Standard Levels**: Logs use uniform levels (`INFO`, `SUCCESS`, `WARN`, `ERROR`, `DEBUG`) with color-coded console output.
+*   **Before/After Scans**: Tools like `Invoke-DiskCleanup` and `Invoke-ShrinkWSL` report exactly how much space you reclaimed.
 
 ### 🧰 The Arsenal
 
 | Category | Tools Included |
 | :--- | :--- |
-| **System Maintenance** | Disk Cleanup, Windows Updates, App Updates (Winget) |
+| **System Maintenance** | Disk Cleanup, Windows Updates, App Updates (Winget/Choco) |
 | **Disk & Storage** | Disk Monitor, WSL VHDX Shrinker (with size reporting) |
 | **Network Ops** | Active TCP Connections, Flush DNS, Ping Test, Public IP, WSL Network Repair |
 | **System Health** | Event Log Analyzer (Top Errors), BSOD Minidump Checker, SFC/DISM |
@@ -46,17 +47,38 @@ Detailed documentation for each module is available in the `docs/` folder:
 
 ---
 
-## 📜 Standalone Scripts
-You can still run individual modules if you prefer:
+## 🗺️ Roadmap
+We are constantly evolving! Here’s what’s next on the horizon:
 
-*   `SysAdminToolbox.ps1` - **The Master Menu**
-*   `DiskCleanup.ps1` - Clean temp files (with reporting)
-*   `Monitor-DiskSpace.ps1` - Check drive space & alert
-*   `SystemInfoReport.ps1` - Generate config reports
-*   `Update-Windows.ps1` - Manage Windows Updates
-*   `shrink_wsl.ps1` - Optimize WSL disk usage
-*   `update.ps1` - Update installed apps
-*   `wslNetworkFix.ps1` - Repair WSL connectivity
+### 🚀 Near-Term (v1.3 - Performance & UX)
+*   **Parallel Patching**: Check for updates simultaneously across Winget and Chocolatey.
+*   **Wider Progress Implementation**: Add `Write-Progress` to all long-running scans.
+*   **Log Rotation**: Auto-compress logs older than 7 days and cleanup after 30 days.
+
+### 🛡️ Mid-Term (v1.4 - Security Hardening)
+*   **Admin Audit**: Automatically flag unauthorized members of the local `Administrators` group.
+*   **Network Guard**: Identify suspicious outbound connections from system processes.
+*   **File Integrity**: Monitor critical system folders for unauthorized hash changes.
+
+### 🛠️ Long-Term (v2.0 - Extended Management)
+*   **Driver Management**: Integrated hardware driver checking and updates.
+*   **Automated Backups**: Scheduled backups for IIS, Task Scheduler, and Registry hives.
+*   **Certificate Watcher**: Proactive alerts for expiring SSL/System certificates.
+
+---
+
+## 📜 Standardized Scripts
+You can still run individual modules:
+
+*   `Start-SysAdminToolbox.ps1` - **The Master Menu**
+*   `Globals.ps1` - **Core Shared Logic**
+*   `Invoke-DiskCleanup.ps1` - Clean temp files
+*   `Invoke-MonitorDiskSpace.ps1` - Check drive space & alert
+*   `Get-SystemReport.ps1` - Generate config reports
+*   `Invoke-WindowsUpdate.ps1` - Manage Windows Updates
+*   `Invoke-ShrinkWSL.ps1` - Optimize WSL disk usage
+*   `Invoke-AppUpdate.ps1` - Update installed apps
+*   `Invoke-WSLNetworkFix.ps1` - Repair WSL connectivity
 
 ## 📝 License
 This project is licensed under the [WTFPL](LICENSE.md). Do what you want.

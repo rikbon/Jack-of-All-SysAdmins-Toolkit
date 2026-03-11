@@ -5,32 +5,32 @@
     Installs the PSWindowsUpdate module if missing, then scans and installs updates.
 .PARAMETER AutoReboot
     If set, automatically reboots if required by updates. Default is False.
-
 #>
 [CmdletBinding()]
 param (
     [boolean]$AutoReboot = $false
 )
 
+# --- Load Globals ---
+$GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
+if (Test-Path $GlobalsPath) { . $GlobalsPath }
+
 # --- Admin Check ---
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
-    Write-Warning "This script requires Administrator privileges. Please run as Administrator."
-    exit 1
-}
+Assert-Admin
 
 # Set execution policy for the current process
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned -Force -ErrorAction SilentlyContinue
 
-Write-Host "Checking for PSWindowsUpdate module..." -ForegroundColor Cyan
+Write-Log "Checking for PSWindowsUpdate module..." "INFO"
 
 # Check/Install Module
 if (-not (Get-Module -ListAvailable -Name PSWindowsUpdate)) {
     try {
         Install-Module -Name PSWindowsUpdate -Force -Scope CurrentUser -AllowClobber -ErrorAction Stop
-        Write-Host "PSWindowsUpdate module installed." -ForegroundColor Green
+        Write-Log "PSWindowsUpdate module installed." "SUCCESS"
     }
     catch {
-        Write-Error "Failed to install PSWindowsUpdate module: $($_.Exception.Message)"
+        Write-Log "Failed to install PSWindowsUpdate module: $($_.Exception.Message)" "ERROR"
         exit 1
     }
 }
@@ -40,21 +40,21 @@ try {
     Import-Module PSWindowsUpdate -Force -ErrorAction Stop
 }
 catch {
-    Write-Error "Failed to import PSWindowsUpdate module."
+    Write-Log "Failed to import PSWindowsUpdate module." "ERROR"
     exit 1
 }
 
 # Scan for Updates
-Write-Host "Scanning for Windows Updates..." -ForegroundColor Yay
+Write-Log "Scanning for Windows Updates..." "INFO"
 try {
     # Get-WindowsUpdate is safe to run (read-only)
     $updates = Get-WindowsUpdate -MicrosoftUpdate -AcceptAll -ErrorAction Stop
     
     if ($updates.Count -gt 0) {
-        Write-Host "$($updates.Count) update(s) found." -ForegroundColor Yellow
+        Write-Log "$($updates.Count) update(s) found." "INFO"
         $updates | Select-Object KB, Title, Size | Format-Table -AutoSize
 
-        Write-Host "Installing updates..." -ForegroundColor Cyan
+        Write-Log "Installing updates..." "INFO"
         $params = @{
             MicrosoftUpdate = $true
             AcceptAll       = $true
@@ -63,12 +63,12 @@ try {
         if ($AutoReboot) { $params.Add('AutoReboot', $true) }
         
         Install-WindowsUpdate @params
-        Write-Host "Updates installed." -ForegroundColor Green
+        Write-Log "Updates installed successfully." "SUCCESS"
     }
     else {
-        Write-Host "No updates available." -ForegroundColor Green
+        Write-Log "No updates available." "SUCCESS"
     }
 }
 catch {
-    Write-Error "Error during Windows Update process: $($_.Exception.Message)"
+    Write-Log "Error during Windows Update process: $($_.Exception.Message)" "ERROR"
 }

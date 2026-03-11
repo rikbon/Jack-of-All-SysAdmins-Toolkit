@@ -21,35 +21,39 @@ param (
     [string]$FromAddress
 )
 
+# --- Load Globals ---
+$GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
+if (Test-Path $GlobalsPath) { . $GlobalsPath }
+
+Write-Log "Monitoring Disk Space (Threshold: $ThresholdGB GB)..." "INFO"
+
 # Retrieve filesystem drives
 $drives = Get-PSDrive -PSProvider FileSystem
 
 foreach ($drive in $drives) {
-    # Skip if drive has no size (e.g. CD-ROM)
+    # Skip if drive has no size
     if ($null -eq $drive.Used -or $drive.Used -eq 0) { continue }
 
-    # Calculate free and total space in GB
     $freeGB = [math]::Round($drive.Free / 1GB, 2)
     $totalGB = [math]::Round(($drive.Free + $drive.Used) / 1GB, 2)
     
-    $message = "Drive $($drive.Name): $freeGB GB free out of $totalGB GB available."
-    Write-Host $message
+    $message = "Drive $($drive.Name): $freeGB GB free out of $totalGB GB."
+    Write-Log $message "INFO"
 
-    # Check if free space is below the threshold
+    # Check threshold
     if ($drive.Free -lt ($ThresholdGB * 1GB)) {
-        $alertMsg = "Warning: Drive $($drive.Name) has less than $ThresholdGB GB free space!"
-        Write-Warning $alertMsg
+        Write-Log "Low Disk Space: Drive $($drive.Name) (< $ThresholdGB GB)" "ERROR"
 
         if ($SmtpServer -and $ToAddress -and $FromAddress) {
             try {
                 Send-MailMessage -From $FromAddress -To $ToAddress `
                     -Subject "Low Disk Space Alert on $env:COMPUTERNAME" `
-                    -Body "$alertMsg`n$message" `
+                    -Body "Low Disk Space: Drive $($drive.Name) has only $freeGB GB free.`n`n$message" `
                     -SmtpServer $SmtpServer
-                Write-Host "Alert email sent." -ForegroundColor Green
+                Write-Log "Alert email sent." "SUCCESS"
             }
             catch {
-                Write-Error "Failed to send email: $($_.Exception.Message)"
+                Write-Log "Failed to send email: $($_.Exception.Message)" "ERROR"
             }
         }
     }

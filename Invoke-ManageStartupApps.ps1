@@ -8,6 +8,10 @@
 [CmdletBinding()]
 param ()
 
+# --- Load Globals ---
+$GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
+if (Test-Path $GlobalsPath) { . $GlobalsPath }
+
 function Get-StartupApps {
     $apps = @()
 
@@ -69,7 +73,7 @@ function Show-StartupMenu {
         $choice = Read-Host "Enter number to DELETE/DISABLE or Q to quit"
         if ($choice -match "^\d+$" -and $choice -le $apps.Count) {
             $selected = $apps[$choice - 1]
-            Write-Warning "You are about to remove: $($selected.Name) from $($selected.Location)"
+            Write-Log "You are about to remove: $($selected.Name) from $($selected.Location)" "WARN"
             $confirm = Read-Host "Type 'DELETE' to confirm"
             
             if ($confirm -eq "DELETE") {
@@ -80,10 +84,10 @@ function Show-StartupMenu {
                     elseif ($selected.Location -like "Folder:*") {
                         Remove-Item -Path $selected.Command -Force -ErrorAction Stop
                     }
-                    Write-Host "Removed successfully." -ForegroundColor Green
+                    Write-Log "Removed successfully." "SUCCESS"
                 }
                 catch {
-                    Write-Error "Failed to remove: $($_.Exception.Message)"
+                    Write-Log "Failed to remove: $($_.Exception.Message)" "ERROR"
                 }
                 Start-Sleep -Seconds 1
             }

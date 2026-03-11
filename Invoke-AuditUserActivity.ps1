@@ -15,13 +15,14 @@ param (
     [string]$UserName = "*"
 )
 
-# --- Admin Check ---
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
-    Write-Warning "Reading the Security Event Log requires Administrator privileges. Please run as Administrator."
-    exit 1
-}
+# --- Load Globals ---
+$GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
+if (Test-Path $GlobalsPath) { . $GlobalsPath }
 
-Write-Host "Scanning Security Log for the last $Days day(s)..." -ForegroundColor Cyan
+# --- Admin Check ---
+Assert-Admin
+
+Write-Log "Scanning Security Log for the last $Days day(s)..." "INFO"
 
 $startTime = (Get-Date).AddDays(-$Days)
 $events = $null
@@ -46,20 +47,12 @@ try {
 }
 catch {
     $err = $_.Exception.Message
-    
-    # Check for "No events found" (localized)
-    # Common error text contains "No events" (En), "Nessun evento" (It), "criteri" (It - criteria), "criteria" (En)
     if ($err -match "No events" -or $err -match "criteria" -or $err -match "criteri" -or $err -match "trouver") {
-        Write-Host "  [-] No logon/logoff events found in the specified timeframe." -ForegroundColor Yellow
-        exit
+        Write-Log "No logon/logoff events found in the specified timeframe." "WARN"
+        return
     }
-    
-    # Generic Beautified Error
-    Write-Host ""
-    Write-Host "  [!] Error querying Event Log" -ForegroundColor Red
-    Write-Host "      Details: $err" -ForegroundColor Gray
-    Write-Host ""
-    exit 1
+    Write-Log "Error querying Event Log: $err" "ERROR"
+    return
 }
 
 $results = @()
@@ -106,8 +99,8 @@ foreach ($evt in $events) {
 if ($results.Count -gt 0) {
     # Sort and Display
     $results | Sort-Object Time -Descending | Format-Table -AutoSize
-    Write-Host "Found $($results.Count) events." -ForegroundColor Green
+    Write-Log "Found $($results.Count) events." "SUCCESS"
 }
 else {
-    Write-Host "No matching events found after filtering." -ForegroundColor Yellow
+    Write-Log "No matching events found after filtering." "INFO"
 }

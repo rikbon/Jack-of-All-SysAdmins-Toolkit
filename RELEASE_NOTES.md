@@ -1,3 +1,28 @@
+# Release Notes - v1.2.1
+
+**Date**: 2026-03-11
+**Codename**: "The Standardized SysAdmin"
+
+## 🚀 Major Update: Standardization & Safety
+This release focuses on centralizing core logic, standardizing naming conventions, and improving visual feedback for long-running operations.
+
+### ✨ New Features
+*   **Centralized Globals** (`Globals.ps1`): All scripts now share a common logging system and administrative privilege check.
+*   **Progress Indicators**: Added `Write-Progress` bars to `Invoke-DiskCleanup` and `Invoke-PortScan` for better user feedback.
+*   **Standardized Logging**: All operations are now logged to `.\logs\Toolkit_YYYYMMDD.log` with severity levels.
+
+### 🛠️ Maintenance & Refactoring
+*   **Naming Convention**: Renamed all scripts to follow PowerShell `Verb-Noun` standards (e.g., `shrink_wsl.ps1` -> `Invoke-ShrinkWSL.ps1`).
+*   **Admin Enforcement**: Replaced custom elevation checks with a shared `Assert-Admin` function.
+*   **Path Resolution**: Improved script calling logic using `$PSScriptRoot`.
+
+### 🐛 Bug Fixes
+*   Fixed `$args` collision in `Invoke-AppUpdate.ps1`.
+*   Fixed inconsistent log formats across modules.
+*   Updated main terminal menu to correctly reference renamed scripts.
+
+---
+
 # Release Notes - v1.0.0
 
 **Date**: 2026-01-14

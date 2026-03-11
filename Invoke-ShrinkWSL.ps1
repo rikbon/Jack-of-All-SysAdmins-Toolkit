@@ -8,24 +8,25 @@
 [CmdletBinding()]
 param ()
 
+# --- Load Globals ---
+$GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
+if (Test-Path $GlobalsPath) { . $GlobalsPath }
+
 # --- Admin Check ---
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator")) {
-    Write-Warning "This script requires Administrator privileges (for Optimize-VHD). Please run as Administrator."
-    exit 1
-}
+Assert-Admin
 
 # --- Prerequisite Check ---
 if (-not (Get-Command Optimize-VHD -ErrorAction SilentlyContinue)) {
-    Write-Error "The 'Optimize-VHD' cmdlet is not available. Please install the Hyper-V PowerShell module."
+    Write-Log "The 'Optimize-VHD' cmdlet is not available. Please install the Hyper-V PowerShell module." "ERROR"
     exit 1
 }
 
 # --- Shutdown WSL ---
-Write-Host "Preparing to shrink WSL disks..." -ForegroundColor Cyan
-Write-Host "Shutting down WSL..."
+Write-Log "Preparing to shrink WSL disks..." "INFO"
+Write-Log "Shutting down WSL..." "INFO"
 wsl --shutdown
 
-# Function to get VHDX Path (Improved with error handling)
+# Function to get VHDX Path
 function Get-WslVhdXPath {
     param([string]$DistributionName)
     try {
@@ -37,7 +38,7 @@ function Get-WslVhdXPath {
         }
     }
     catch {
-        Write-Debug "Error finding VHDX for $DistributionName"
+        Write-Log "Error finding VHDX for $DistributionName" "DEBUG"
     }
     return $null
 }
@@ -52,15 +53,15 @@ foreach ($distroRaw in $wslList) {
     
     if (-not $distroName) { continue }
 
-    Write-Host "Processing: $distroName" -ForegroundColor Yellow
+    Write-Log "Processing: $distroName" "INFO"
     $vhdxPath = Get-WslVhdXPath -DistributionName $distroName
 
     if ($vhdxPath -and (Test-Path $vhdxPath)) {
         $initialBytes = (Get-Item $vhdxPath).Length
         $initialGB = [math]::Round($initialBytes / 1GB, 2)
-        Write-Host "  Found VHDX: $vhdxPath (Size: $initialGB GB)"
+        Write-Log "  Found VHDX: $vhdxPath (Size: $initialGB GB)" "INFO"
             
-        Write-Host "  Optimizing..."
+        Write-Log "  Optimizing..." "INFO"
         try {
             Optimize-VHD -Path $vhdxPath -Mode Full -ErrorAction Stop
                 
@@ -68,16 +69,16 @@ foreach ($distroRaw in $wslList) {
             $finalGB = [math]::Round($finalBytes / 1GB, 2)
             $savedMB = [math]::Round(($initialBytes - $finalBytes) / 1MB, 2)
                 
-            Write-Host "  Optimization complete." -ForegroundColor Green
-            Write-Host "  Before: $initialGB GB | After: $finalGB GB | Reclaimed: $savedMB MB" -ForegroundColor Cyan
+            Write-Log "  Optimization complete." "SUCCESS"
+            Write-Log "  Before: $initialGB GB | After: $finalGB GB | Reclaimed: $savedMB MB" "SUCCESS"
         }
         catch {
-            Write-Error "  Failed to optimize: $($_.Exception.Message)"
+            Write-Log "  Failed to optimize: $($_.Exception.Message)" "ERROR"
         }
     }
     else {
-        Write-Warning "  Could not locate VHDX file for '$distroName'."
+        Write-Log "  Could not locate VHDX file for '$distroName'." "WARN"
     }
 }
 
-Write-Host "Done." -ForegroundColor Cyan
+Write-Log "WSL disk shrink process complete." "SUCCESS"
