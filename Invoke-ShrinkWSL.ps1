@@ -47,11 +47,17 @@ function Get-WslVhdXPath {
 # Ensure UTF-8 handling if needed, though usually standard output works
 $wslList = (wsl --list --quiet) -split "`r`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
+$distrosToShrink = $wslList.Count
+$currentShrinkDistro = 0
+
 foreach ($distroRaw in $wslList) {
+    $currentShrinkDistro++
     # Clean up distro name (remove null bytes if any, trim)
     $distroName = $distroRaw.Trim().Replace("`0", "")
     
     if (-not $distroName) { continue }
+
+    Write-Progress -Activity "Shrinking WSL Disks" -Status "Processing: $distroName" -PercentComplete (($currentShrinkDistro / $distrosToShrink) * 100)
 
     Write-Log "Processing: $distroName" "INFO"
     $vhdxPath = Get-WslVhdXPath -DistributionName $distroName
@@ -80,5 +86,6 @@ foreach ($distroRaw in $wslList) {
         Write-Log "  Could not locate VHDX file for '$distroName'." "WARN"
     }
 }
+Write-Progress -Activity "Shrinking WSL Disks" -Completed
 
 Write-Log "WSL disk shrink process complete." "SUCCESS"

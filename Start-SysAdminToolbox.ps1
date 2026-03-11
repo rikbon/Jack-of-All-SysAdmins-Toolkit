@@ -103,12 +103,14 @@ function Show-LoggingMenu {
         Write-Host "=== Logging & Auditing ===" -ForegroundColor Cyan
         Write-Host "1. Audit User Logon/Logoff Activity"
         Write-Host "2. Archive & Backup Event Logs"
+        Write-Host "3. Rotate & Cleanup Toolkit Logs"
         Write-Host "B. Back"
 
         $choice = Read-Host "Select"
         switch ($choice) {
             "1" { Run-Script "Invoke-AuditUserActivity.ps1" }
             "2" { Run-Script "Invoke-ArchiveEventLogs.ps1" }
+            "3" { Run-Script "Invoke-LogRotation.ps1" }
             "B" { return }
             "b" { return }
         }
@@ -309,7 +311,7 @@ function Show-MainMenu {
     while ($true) {
         Clear-Host
         Write-Host "===========================" -ForegroundColor Cyan
-        Write-Host " Jack-of-All-SysAdmins v1.2.1" -ForegroundColor Cyan
+        Write-Host " Jack-of-All-SysAdmins v1.3.0" -ForegroundColor Cyan
         Write-Host "===========================" -ForegroundColor Cyan
         Write-Host ""
 

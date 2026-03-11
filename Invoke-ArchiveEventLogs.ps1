@@ -43,7 +43,13 @@ $allSuccess = $true
 
 Write-Log "Starting Event Log Backup..." "INFO"
 
+$currentLogProgress = 0
+$logsToBackupCount = $logsToBackup.Count
+
 foreach ($logName in $logsToBackup) {
+    $currentLogProgress++
+    Write-Progress -Activity "Backing up Event Logs" -Status "Exporting: $logName" -PercentComplete (($currentLogProgress / $logsToBackupCount) * 100)
+    
     $outFile = Join-Path $tempFolder "$logName.evtx"
     Write-Log "  Exporting $logName..." "INFO"
     
@@ -61,9 +67,10 @@ foreach ($logName in $logsToBackup) {
     }
     catch {
         Write-Log "    [ERROR]: $($_.Exception.Message)" "ERROR"
-        $allSuccess = false
+        $allSuccess = $false
     }
 }
+Write-Progress -Activity "Backing up Event Logs" -Completed
 
 if ($allSuccess) {
     # Compress

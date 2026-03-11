@@ -43,6 +43,8 @@ $reportContent += "OS: $($os.Caption) (Version: $($os.Version))"
 $reportContent += "Processor: $($cpu.Name)"
 $reportContent += "Total RAM: $([math]::Round($computerSys.TotalPhysicalMemory / 1GB, 2)) GB"
 
+Write-Progress -Activity "Generating Report" -Status "Collecting Network info" -PercentComplete 60
+
 # Network Info (IP Address)
 $reportContent += ""
 $reportContent += "Network Information:"
@@ -54,12 +56,15 @@ foreach ($adapter in $netAdapters) {
     }
 }
 
+Write-Progress -Activity "Generating Report" -Status "Collecting Disk info" -PercentComplete 80
+
 # Disk Info
 $reportContent += ""
 $reportContent += "Disk Information:"
 Get-CimInstance -ClassName Win32_LogicalDisk | Where-Object { $_.DriveType -eq 3 } | ForEach-Object {
     $reportContent += "  Drive $($_.DeviceID): Free $([math]::Round($_.FreeSpace/1GB,2)) GB of $([math]::Round($_.Size/1GB,2)) GB"
 }
+Write-Progress -Activity "Generating Report" -Completed
 
 # Output
 try {

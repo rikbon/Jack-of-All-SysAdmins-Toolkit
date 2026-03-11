@@ -1,3 +1,21 @@
+# Release Notes - v1.3.0
+
+**Date**: 2026-03-11
+**Codename**: "The Parallel Patch & Polish"
+
+## 🚀 Major Update: Performance & UX
+This release focuses on significantly speeding up application updating scans and managing long-term toolkit artifact accumulation.
+
+### ✨ New Features
+*   **Parallel Patching** (`Invoke-AppUpdate.ps1`): Checking for updates is now handled simultaneously across both Winget and Chocolatey via background jobs, reducing time spent scanning.
+*   **Log Rotation** (`Invoke-LogRotation.ps1`): A new tool to auto-compress logs older than 7 days and delete logs/archives older than 30 days. Added to the main menu under Logging & Auditing.
+
+### 🛠️ Maintenance & Refactoring
+*   **Progress Tracking**: Wider implementation of `Write-Progress` on existing maintenance tools to provide richer visual feedback.
+*   **Dashboard Update**: Main dashboard `Start-SysAdminToolbox.ps1` version bumped to 1.3.0.
+
+---
+
 # Release Notes - v1.2.1
 
 **Date**: 2026-03-11

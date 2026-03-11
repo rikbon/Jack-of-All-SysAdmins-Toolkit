@@ -56,8 +56,15 @@ catch {
 }
 
 $results = @()
+$totalAuditEvents = $events.Count
+$currentAuditEvent = 0
 
 foreach ($evt in $events) {
+    $currentAuditEvent++
+    if ($currentAuditEvent % 10 -eq 0) {
+        Write-Progress -Activity "Auditing User Activity" -Status "Analyzing event $currentAuditEvent of $totalAuditEvents" -PercentComplete (($currentAuditEvent / $totalAuditEvents) * 100)
+    }
+
     # Extract XML for easier property access
     $xml = [xml]$evt.ToXml()
     $eventData = $xml.Event.EventData.Data
@@ -69,7 +76,7 @@ foreach ($evt in $events) {
     
     # Filter by user if requested
     if ($targetUser -notlike $UserName) { continue }
-    # Filter out system accounts usually (ending in $) or ANONYMOUS LOGON
+    # Filter out system accounts usually (ending in$) or ANONYMOUS LOGON
     if ($targetUser -match "\$$" -or $targetUser -eq "ANONYMOUS LOGON" -or $targetUser -match "^DWM-") { continue }
 
     $action = if ($evt.Id -eq 4624) { "Logon" } else { "Logoff" }
@@ -95,6 +102,7 @@ foreach ($evt in $events) {
         EventID = $evt.Id
     }
 }
+Write-Progress -Activity "Auditing User Activity" -Completed
 
 if ($results.Count -gt 0) {
     # Sort and Display

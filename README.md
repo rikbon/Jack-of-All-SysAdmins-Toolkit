@@ -1,4 +1,4 @@
-# 🛠️ The Jack-of-All-SysAdmins Toolkit `v1.2.1`
+# 🛠️ The Jack-of-All-SysAdmins Toolkit `v1.3.0`
 
 > *One script to rule them all, one script to find them, one script to bring them all and in the terminal bind them.*
 
@@ -50,12 +50,7 @@ Detailed documentation for each module is available in the `docs/` folder:
 ## 🗺️ Roadmap
 We are constantly evolving! Here’s what’s next on the horizon:
 
-### 🚀 Near-Term (v1.3 - Performance & UX)
-*   **Parallel Patching**: Check for updates simultaneously across Winget and Chocolatey.
-*   **Wider Progress Implementation**: Add `Write-Progress` to all long-running scans.
-*   **Log Rotation**: Auto-compress logs older than 7 days and cleanup after 30 days.
-
-### 🛡️ Mid-Term (v1.4 - Security Hardening)
+### 🛡️ Near-Term (v1.4 - Security Hardening)
 *   **Admin Audit**: Automatically flag unauthorized members of the local `Administrators` group.
 *   **Network Guard**: Identify suspicious outbound connections from system processes.
 *   **File Integrity**: Monitor critical system folders for unauthorized hash changes.

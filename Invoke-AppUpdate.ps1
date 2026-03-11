@@ -45,8 +45,6 @@ else {
         }
     }
 
-    Write-Log "Checking for available Winget updates..." "INFO"
-
     # Refresh Winget Sources
     Write-Log "Maintenance: Checking Winget sources..." "INFO"
     $sourceUpdateOut = winget source update 2>&1
@@ -58,10 +56,26 @@ else {
         winget source update | Out-Null
     }
 
-    # Get list of ID's that need upgrade
-    $upgradeOutput = winget upgrade --accept-source-agreements 2>&1 | Out-String
+    Write-Log "Checking for available updates simultaneously (Winget & Chocolatey)..." "INFO"
+    $wingetJob = Start-Job -ScriptBlock { winget upgrade --accept-source-agreements 2>&1 | Out-String }
+    
+    $chocoJob = $null
+    if (Get-Command choco -ErrorAction SilentlyContinue) {
+        $chocoJob = Start-Job -ScriptBlock { choco outdated -r 2>&1 | Out-String }
+    }
+    
+    $jobsToWait = @($wingetJob)
+    if ($chocoJob) { $jobsToWait += $chocoJob }
+    Wait-Job $jobsToWait | Out-Null
 
-    # Parse the output to find IDs
+    # Get list of ID's that need upgrade from Winget
+    $upgradeOutput = Receive-Job $wingetJob
+    Remove-Job $wingetJob
+
+    if ($chocoJob) {
+        $chocoOut = Receive-Job $chocoJob
+        Remove-Job $chocoJob
+    }
     # Output format is usually: Name | Id | Version | Available | Source
     # We look for lines that look like package entries (not headers)
     $lines = $upgradeOutput -split "`r`n"
@@ -91,11 +105,17 @@ else {
     else {
         Write-Log "Found $($idsToUpgrade.Count) packages to upgrade." "INFO"
         
+        $totalWinget = $idsToUpgrade.Count
+        $currentWinget = 0
+
         if ($ListOnly) {
             foreach ($id in $idsToUpgrade) { Write-Log "  [UPDATE] $id" "INFO" }
         }
         else {
             foreach ($id in $idsToUpgrade) {
+                $currentWinget++
+                Write-Progress -Activity "Upgrading Applications (Winget)" -Status "Upgrading $id" -PercentComplete (($currentWinget / $totalWinget) * 100)
+                
                 if ($SkipPackages -and $SkipPackages -match $id) {
                     Write-Log "Skipping $id (Skiplist)" "INFO"
                     continue
@@ -115,22 +135,31 @@ else {
                     Write-Log "Successfully upgraded $id." "SUCCESS"
                 }
             }
+            Write-Progress -Activity "Upgrading Applications (Winget)" -Completed
         }
     }
 }
 
 # --- Chocolatey Upgrade ---
 if (Get-Command choco -ErrorAction SilentlyContinue) {
-    Write-Log "Chocolatey detected. Checking for updates..." "INFO"
+    Write-Log "Chocolatey detected. Processing updates..." "INFO"
     try {
         if ($ListOnly) {
-            choco outdated
+            if (-not $chocoOut) {
+                # Fallback if winget was not found and parallel job didn't run
+                $chocoOut = choco outdated -r 2>&1 | Out-String
+            }
+            Write-Log "Chocolatey Outdated:" "INFO"
+            $chocoOut -split "`r`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | ForEach-Object { Write-Log "  $_" "INFO" }
         }
         else {
+            Write-Progress -Activity "Upgrading Applications (Chocolatey)" -Status "Upgrading all packages" -PercentComplete 50
+            Write-Log "Upgrading all Chocolatey packages..." "INFO"
             $chocoArgs = "upgrade all -y"
             if ($QuietMode) { $chocoArgs += " -q" }
             Invoke-Expression "choco $chocoArgs"
             Write-Log "Chocolatey upgrade complete." "SUCCESS"
+            Write-Progress -Activity "Upgrading Applications (Chocolatey)" -Completed
         }
     }
     catch {

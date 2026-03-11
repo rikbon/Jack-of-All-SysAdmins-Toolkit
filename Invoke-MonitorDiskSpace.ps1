@@ -29,10 +29,15 @@ Write-Log "Monitoring Disk Space (Threshold: $ThresholdGB GB)..." "INFO"
 
 # Retrieve filesystem drives
 $drives = Get-PSDrive -PSProvider FileSystem
+$totalDrives = $drives.Count
+$currentDriveIdx = 0
 
 foreach ($drive in $drives) {
+    $currentDriveIdx++
     # Skip if drive has no size
     if ($null -eq $drive.Used -or $drive.Used -eq 0) { continue }
+
+    Write-Progress -Activity "Monitoring Disk Space" -Status "Checking Drive $($drive.Name):" -PercentComplete (($currentDriveIdx / $totalDrives) * 100)
 
     $freeGB = [math]::Round($drive.Free / 1GB, 2)
     $totalGB = [math]::Round(($drive.Free + $drive.Used) / 1GB, 2)
@@ -58,3 +63,4 @@ foreach ($drive in $drives) {
         }
     }
 }
+Write-Progress -Activity "Monitoring Disk Space" -Completed
