@@ -61,6 +61,7 @@ function Show-NetworkMenu {
         Write-Host "3. Get Public IP"
         Write-Host "4. Active TCP Connections"
         Write-Host "5. WSL Network Fix (Script)"
+        Write-Host "6. Network Guard (Suspicious Connections)"
         Write-Host "B. Back"
         
         $choice = Read-Host "Select an option"
@@ -90,6 +91,7 @@ function Show-NetworkMenu {
                 Pause
             }
             "5" { Run-Script "Invoke-WSLNetworkFix.ps1" }
+            "6" { Run-Script "Invoke-NetworkGuard.ps1" }
             "B" { return }
             "b" { return }
         }
@@ -157,6 +159,8 @@ function Show-HealthMenu {
         Write-Host "3. Repair System Image (DISM)"
         Write-Host "4. View Recent Critical/Error Events"
         Write-Host "5. Check for BSOD Minidumps"
+        Write-Host "6. Driver Management (Check PNPs)"
+        Write-Host "7. System Backup (Reg & Tasks)"
         Write-Host "B. Back"
 
         $choice = Read-Host "Select an option"
@@ -221,6 +225,8 @@ function Show-HealthMenu {
                     Pause
                 }
             }
+            "6" { Run-Script "Invoke-DriverUpdate.ps1" }
+            "7" { Run-Script "Invoke-SystemBackup.ps1" }
             "B" { return }
             "b" { return }
         }
@@ -268,6 +274,9 @@ function Show-SecurityFileMenu {
         Write-Host "3. Find Large Files (>1GB) in a Directory"
         Write-Host "4. Port Scanner (Quick Scan)"
         Write-Host "5. Firewall Rule Manager"
+        Write-Host "6. Admin Audit (Local Administrators)"
+        Write-Host "7. File Integrity Monitor (Hashing)"
+        Write-Host "8. Certificate Watcher (Expiring Soon)"
         Write-Host "B. Back"
         
         $choice = Read-Host "Select"
@@ -294,6 +303,9 @@ function Show-SecurityFileMenu {
             }
             "4" { Run-Script "Invoke-PortScan.ps1" }
             "5" { Run-Script "Invoke-ManageFirewallRules.ps1" }
+            "6" { Run-Script "Invoke-AdminAudit.ps1" }
+            "7" { Run-Script "Invoke-FileIntegrityMonitor.ps1" }
+            "8" { Run-Script "Invoke-CertificateWatcher.ps1" }
             "B" { return }
             "b" { return }
         }
@@ -311,7 +323,7 @@ function Show-MainMenu {
     while ($true) {
         Clear-Host
         Write-Host "===========================" -ForegroundColor Cyan
-        Write-Host " Jack-of-All-SysAdmins v1.3.0" -ForegroundColor Cyan
+        Write-Host " Jack-of-All-SysAdmins v2.0.0" -ForegroundColor Cyan
         Write-Host "===========================" -ForegroundColor Cyan
         Write-Host ""
 

@@ -1,27 +1,41 @@
-# SysAdmin Toolbox (Main Menu)
+# SysAdmin Toolbox (Main Menus)
 
-**Script**: `Start-SysAdminToolbox.ps1`
+**Windows Script**: `Windows/Start-SysAdminToolbox.ps1`
+**Linux Script**: `Linux/start-sysadmintoolbox.sh`
 
 ## Overview
-The **SysAdmin Toolbox** is the central hub for this suite of utilities. It provides a text-based, menu-driven interface to access all other scripts and built-in functions.
+The **SysAdmin Toolbox** is the central hub for this suite of utilities. It provides text-based, menu-driven interfaces to access all other scripts and built-in functions, tailored for the respective operating system.
 
 ## Usage
-Run the script from PowerShell. It will automatically attempt to elevate to Administrator privileges if not already running as Admin.
+
+### Windows (PowerShell)
+Run the script from PowerShell. It will automatically attempt to elevate to Administrator privileges via `Assert-Admin` if not already running as Admin.
 
 ```powershell
-.\Start-SysAdminToolbox.ps1
+.\Windows\Start-SysAdminToolbox.ps1
 ```
 
-## Menu Structure
-1.  **System Maintenance**: Access tools for cleaning disks, updating Windows, and updating apps (Winget/Chocolatey).
-2.  **Disk & Storage**: Monitor disk space and manage WSL virtual disks.
-3.  **Network Utility**: Flush DNS, Ping test, Public IP check, Active connections, and WSL network repair.
-4.  **Service Utility**: Restart common services like Print Spooler and Windows Explorer.
-5.  **System Health & Troubleshooting**: Generate reports, run SFC/DISM, check Event Logs and BSOD Minidumps.
-6.  **Process & Performance**: Monitor resource usage, kill processes, and manage startup apps.
-7.  **Security & File Utilities**: Audit users, hash files, find large files, scan ports, and manage firewall rules.
-8.  **Logging & Auditing**: Audit user activity, archive event logs, and rotate toolkit logs.
+### Linux (Bash)
+Run the script from your terminal using `sudo` to ensure you have the necessary root privileges via `assert_root`.
+
+```bash
+sudo bash ./Linux/start-sysadmintoolbox.sh
+```
+
+## Menu Structures
+
+Both launchers share a similar organizational structure:
+1.  **System Maintenance**: Access tools for cleaning disks and updating the OS/apps.
+2.  **Disk & Storage**: Monitor disk space and manage storage.
+3.  **Network Utility**: Run network diagnostics and checks.
+4.  *(Windows Only)* **Service Utility**: Restart common services like Print Spooler.
+5.  *(Windows Only)* **System Health**: Generate reports and run system checks.
+6.  *(Windows Only)* **Process & Performance**: Monitor resources.
+7.  *(Windows Only)* **Security & File Utilities**: Audit users and files.
+8.  *(Windows Only)* **Logging & Auditing**: Archive logs.
+
+*(Note: The Linux toolkit is actively expanding to reach full feature parity with the Windows suite.)*
 
 ## Features
-- **Auto-Elevation**: Checks for Admin rights via `Assert-Admin` and relaunches itself with `RunAs` if needed.
-- **Standardized Logging**: All actions performed via the menu are logged to `.\logs\Toolkit_YYYYMMDD.log` using the shared `Write-Log` function.
+- **Auto-Elevation**: Both scripts ensure you are running with the necessary permissions (`RunAs` for Windows, `sudo` enforcement for Linux).
+- **Standardized Logging**: All actions performed via the menus are logged to the centralized `logs/Toolkit_YYYYMMDD.log` using the shared logging functions (`Write-Log` / `write_log`).
