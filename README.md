@@ -4,7 +4,7 @@
 ![Shell](https://img.shields.io/badge/Shell-PowerShell%20%7C%20Bash-green)
 ![License](https://img.shields.io/badge/License-MIT-success)
 
-**Version:** 2.2.0
+**Version:** 2.2.1
 
 ## Overview
 The Jack-of-All-SysAdmins Toolkit is a unified, menu-driven utility suite designed to streamline routine system administration tasks across both Windows (PowerShell) and Linux (Bash) environments. It emphasizes safety, standardized logging, and operational efficiency.

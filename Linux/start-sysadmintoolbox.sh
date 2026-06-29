@@ -23,7 +23,7 @@ assert_root
 show_main_menu() {
     clear
     echo -e "${CYAN}=================================${NC}"
-    echo -e "${CYAN} Jack-of-All-SysAdmins Linux v2.2.0 ${NC}"
+    echo -e "${CYAN} Jack-of-All-SysAdmins Linux v2.2.1 ${NC}"
     echo -e "${CYAN}=================================${NC}"
     echo ""
     echo "1. System Maintenance (Clean, Update)"

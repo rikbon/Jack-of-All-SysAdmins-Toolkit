@@ -11,7 +11,7 @@
     publish ALL of these as GitHub Release assets or the one-liner installers will
     fall back to downloading the main branch archive.
 #>
-$Version = "2.2.0"
+$Version = "2.2.1"
 $ReleaseDir = Join-Path $PSScriptRoot "Release"
 $SourceDir = $PSScriptRoot
 $RootDir   = Split-Path $SourceDir -Parent
