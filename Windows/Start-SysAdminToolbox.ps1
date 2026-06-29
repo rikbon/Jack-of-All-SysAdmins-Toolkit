@@ -323,7 +323,7 @@ function Show-MainMenu {
     while ($true) {
         Clear-Host
         Write-Host "===========================" -ForegroundColor Cyan
-        Write-Host " Jack-of-All-SysAdmins v2.0.0" -ForegroundColor Cyan
+        Write-Host " Jack-of-All-SysAdmins v2.2.0" -ForegroundColor Cyan
         Write-Host "===========================" -ForegroundColor Cyan
         Write-Host ""
 
