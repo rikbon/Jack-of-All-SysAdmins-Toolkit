@@ -1,3 +1,36 @@
+# Release Notes - v2.2.1
+
+**Date**: 2026-06-29
+**Codename**: "One-Click In, One-Click Out"
+
+## 🚀 Update: one-click Uninstall for both platforms
+Adds an uninstall workflow to match the v2.2.0 install workflow, so the
+entire lifecycle of the SysAdmin Toolbox is a one-liner — install *and* remove.
+
+### ✨ New Features
+*   **Linux one-liner uninstaller** (`uninstall.sh`): fetches itself just like
+    `install.sh`. Removes the launcher symlink at `/usr/local/bin/sysadmin-toolbox`
+    and the `/opt/sysadmin-toolbox` install dir. Logs under the install dir are
+    relocated to `/var/log/sysadmin-toolbox` by default so they survive the
+    uninstall; rerun with `PURGE_LOGS=1` to delete them too:
+    `PURGE_LOGS=1 sudo -E bash -c "$(curl -fsSL .../uninstall.sh)"`.
+*   **Windows one-liner uninstaller** (`uninstall.ps1`): self-elevating, removes
+    the Start-menu shortcut and the toolkit entry from the system `PATH`, then
+    **renames** `%ProgramFiles%\SysAdminToolbox` to a timestamped backup
+    `SysAdminToolbox_uninstall_YYYYMMDDTHHmmss` so your logs and any local edits
+    survive; re-running the installer lays down a fresh install dir.
+*   **README.md** gains an **Uninstall** section under **Install** with the exact
+    one-liners for both platforms, behavior descriptions, and an explicit note
+    that shared runtime dependencies (`util-linux`/`curl`/`iproute2`;
+    `PSWindowsUpdate`/`winget`/Chocolatey) are intentionally **not** removed.
+
+### 🛠️ Maintenance & Refactoring
+*   **Version bump** across all manifests → `2.2.1`: `README.md` top-of-file
+    badge, both launcher banners (`Linux/start-sysadmintoolbox.sh`,
+    `Windows/Start-SysAdminToolbox.ps1`), `Windows/build.ps1`.
+
+---
+
 # Release Notes - v2.2.0
 
 **Date**: 2026-06-29
