@@ -348,8 +348,12 @@ function Show-MainMenu {
     while ($true) {
         Clear-Host
         Write-Host "===========================" -ForegroundColor Cyan
+<<<<<<< HEAD
         $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot "..\VERSION") -Raw).Trim()
         Write-Host " Jack-of-All-SysAdmins v$version" -ForegroundColor Cyan
+=======
+        Write-Host " Jack-of-All-SysAdmins v2.2.1" -ForegroundColor Cyan
+>>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
         Write-Host "===========================" -ForegroundColor Cyan
         Write-Host ""
 

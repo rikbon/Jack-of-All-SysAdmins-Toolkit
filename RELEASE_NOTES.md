@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Release Notes - v2.5.0
 
 ## v2.5.0
@@ -7,6 +8,67 @@
 * Added centralized version metadata and cross-platform validation.
 * Improved command safety, error handling, cleanup safeguards, and CLI help.
 
+=======
+# Release Notes - v2.2.1
+
+**Date**: 2026-06-29
+**Codename**: "One-Click In, One-Click Out"
+
+## 🚀 Update: one-click Uninstall for both platforms
+Adds an uninstall workflow to match the v2.2.0 install workflow, so the
+entire lifecycle of the SysAdmin Toolbox is a one-liner — install *and* remove.
+
+### ✨ New Features
+*   **Linux one-liner uninstaller** (`uninstall.sh`): fetches itself just like
+    `install.sh`. Removes the launcher symlink at `/usr/local/bin/sysadmin-toolbox`
+    and the `/opt/sysadmin-toolbox` install dir. Logs under the install dir are
+    relocated to `/var/log/sysadmin-toolbox` by default so they survive the
+    uninstall; rerun with `PURGE_LOGS=1` to delete them too:
+    `PURGE_LOGS=1 sudo -E bash -c "$(curl -fsSL .../uninstall.sh)"`.
+*   **Windows one-liner uninstaller** (`uninstall.ps1`): self-elevating, removes
+    the Start-menu shortcut and the toolkit entry from the system `PATH`, then
+    **renames** `%ProgramFiles%\SysAdminToolbox` to a timestamped backup
+    `SysAdminToolbox_uninstall_YYYYMMDDTHHmmss` so your logs and any local edits
+    survive; re-running the installer lays down a fresh install dir.
+*   **README.md** gains an **Uninstall** section under **Install** with the exact
+    one-liners for both platforms, behavior descriptions, and an explicit note
+    that shared runtime dependencies (`util-linux`/`curl`/`iproute2`;
+    `PSWindowsUpdate`/`winget`/Chocolatey) are intentionally **not** removed.
+
+### 🛠️ Maintenance & Refactoring
+*   **Version bump** across all manifests → `2.2.1`: `README.md` top-of-file
+    badge, both launcher banners (`Linux/start-sysadmintoolbox.sh`,
+    `Windows/Start-SysAdminToolbox.ps1`), `Windows/build.ps1`.
+
+---
+
+# Release Notes - v2.2.0
+
+**Date**: 2026-06-29
+**Codename**: "One-Click Anywhere"
+
+## 🚀 Major Update: One-Click Installers & Install-Site Bug Fixes
+This release turns the SysAdmin Toolbox from "run the launcher from the cloned repo" into a one-command install on both platforms — and fixes a load-path bug that let the dashboard start while silently broken on the installed path.
+
+### ✨ New Features
+*   **Linux one-liner installer** (`install.sh`): detects the distro via `/etc/os-release` (apt / dnf / yum / pacman / apk / zypper + their derivatives), installs **every** runtime dependency the kit needs (`util-linux`, `gawk`, `curl`, `iproute2`, `iputils-ping`, `coreutils`, `procps`), downloads the latest release (falls back to the `main` branch tarball if no release is published), and installs to `/opt/sysadmin-toolbox` with a `/usr/local/bin/sysadmin-toolbox` symlink.
+*   **Windows one-liner installer** (`install.ps1`): sets the local execution policy, self-elevates to Administrator, bootstraps `PowerShellGet` + `PSWindowsUpdate` + `winget` + Chocolatey where they're missing, installs to `%ProgramFiles%\SysAdminToolbox`, adds the directory to the system PATH, and drops a Start-menu shortcut — so `sysadmin-toolbox` works from any PowerShell or Command Prompt.
+*   **Release archive convention** (`build.ps1`): now emits both the classic `SysAdminToolbox_v2.2.0.zip` and the canonical `Jack-of-All-SysAdmins-Toolkit-windows.zip` / `-linux.tar.gz` assets that the one-liners curl/wget. Publishing all of them as GitHub Release assets lets the installers grab a proper release rather than the main-branch fallback.
+*   **Linux "Last Logins" fallback chain** (`Linux/audit-users.sh`): the Security menu option "Show last 10 successful logins" no longer just prints `last: command not found` on minimal installs and containers. It now tries `last`, then `lastlog`, then `utmpdump /var/log/wtmp`, then a grep over `/var/log/auth.log` and `/var/log/secure`.
+*   **README.md** gains a prominent **Install (one-liner)** section with the exact commands for both platforms and an explanation of what each does.
+
+### 🛠️ Maintenance & Refactoring
+*   Launcher version banners bumped to `v2.2.0` (`Linux/start-sysadmintoolbox.sh`, `Windows/Start-SysAdminToolbox.ps1`).
+*   **README.md** top-of-file version badge updated to `2.2.0`.
+*   Workspace-version strings in `Windows/build.ps1` bumped from `1.3.0` to `2.2.0`.
+
+### 🐛 Bug Fixes
+*   **`write_log: command not found` through the `/usr/local/bin/sysadmin-toolbox` symlink**: the launcher resolved `SCRIPT_DIR` from `${BASH_SOURCE[0]}` directly, which on the installer's symlink returned the symlink's *owner* dir (`/usr/local/bin`) instead of the launcher's real dir. `source globals.sh` then silently failed (the launcher doesn't `set -e`), leaving `write_log`, `assert_root`, and all colour codes undefined so any error path printed the literal `write_log: command not found`. The launcher now follows the symlink chain via `readlink` (no `realpath` dependency) before sourcing globals.
+
+---
+
+# Release Notes - v1.3.0
+>>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
 
 **Date**: 2026-03-11
 **Codename**: "The Parallel Patch & Polish"
