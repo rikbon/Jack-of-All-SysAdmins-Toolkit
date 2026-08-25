@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Source globals
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-source "${SCRIPT_DIR}/globals.sh"
+source "${SCRIPT_DIR}/globals.sh" || exit 1
+
+show_help() { printf 'Usage: %s [interactive]\n' "$0"; }
+if cli_help_requested "${1:-}"; then show_help; exit 0; fi
+if [[ -n "${1:-}" && "${1:-}" != "interactive" ]]; then cli_usage_error "$1"; show_help >&2; exit 2; fi
 
 show_menu() {
     clear
@@ -22,7 +26,7 @@ while true; do
         1)
             write_log "Fetching Active TCP Connections..." "INFO"
             ss -tulpn | grep LISTEN
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         2)
             write_log "Fetching Public IP..." "INFO"
@@ -32,17 +36,16 @@ while true; do
             else
                 write_log "Failed to fetch Public IP." "ERROR"
             fi
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         3)
             write_log "Pinging 8.8.8.8..." "INFO"
-            ping -c 4 8.8.8.8
-            if [ $? -eq 0 ]; then
+            if ping -c 4 8.8.8.8; then
                 write_log "Ping test passed." "SUCCESS"
             else
                 write_log "Ping test failed." "ERROR"
             fi
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         [bB])
             break

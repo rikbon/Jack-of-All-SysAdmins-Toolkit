@@ -9,6 +9,11 @@
 [CmdletBinding()]
 param()
 
+if ($args -contains '-h' -or $args -contains '--help') {
+    Get-Help $MyInvocation.MyCommand.Path -Detailed
+    exit 0
+}
+
 # --- Load Globals ---
 $GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
 if (Test-Path $GlobalsPath) {
@@ -35,19 +40,21 @@ $ScriptDir = $PSScriptRoot
 # function Write-Log { ... } # Moved to Globals.ps1
 
 function Run-Script {
-    param([string]$ScriptName, [string]$ScriptArgs)
-    $path = Join-Path $ScriptDir $ScriptName
-    if (Test-Path $path) {
-        Write-Log "Launching $ScriptName..." "INFO"
-        $cmd = "& '$path' $ScriptArgs"
-        
-        Invoke-Expression $cmd
-        Write-Host "Press any key to continue..."
-        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ScriptName,
+        [hashtable]$ScriptParameters = @{}
+    )
+    Invoke-ToolkitScript -ScriptDirectory $ScriptDir -ScriptName $ScriptName -Parameters $ScriptParameters
+}
+
+function Run-DiskCleanup {
+    param([switch]$LaunchWindowsCleanup)
+    if ($LaunchWindowsCleanup) {
+        Invoke-ToolkitScript -ScriptDirectory $ScriptDir -ScriptName "Invoke-DiskCleanup.ps1" -Parameters @{ LaunchWindowsCleanup = $true }
     }
     else {
-        Write-Log "Script $ScriptName not found!" "ERROR"
-        Start-Sleep -Seconds 2
+        Invoke-ToolkitScript -ScriptDirectory $ScriptDir -ScriptName "Invoke-DiskCleanup.ps1"
     }
 }
 
@@ -69,12 +76,28 @@ function Show-NetworkMenu {
             "1" { 
                 try { Clear-DnsClientCache -ErrorAction Stop; Write-Log "DNS Cache Flushed." "SUCCESS" }
                 catch { Write-Log "Failed to flush DNS: $($_.Exception.Message)" "ERROR" }
-                Pause
+                Pause-Toolkit
             }
             "2" {
                 Write-Host "Pinging 8.8.8.8..."
-                Test-Connection -ComputerName 8.8.8.8 -Count 4
-                Pause
+                $pingOutput = @(& ping.exe 8.8.8.8 -n 4 2>&1)
+                $pingExitCode = if ($null -eq $LASTEXITCODE) { 1 } else { $LASTEXITCODE }
+
+                Write-Host "Ping command exit code: $pingExitCode"
+                if ($pingOutput.Count -gt 0) {
+                    $pingOutput | ForEach-Object { Write-Host ([string]$_) }
+                }
+                else {
+                    Write-Host "No ping output was returned."
+                }
+
+                if ($pingExitCode -eq 0) {
+                    Write-Log "Ping test completed successfully." "SUCCESS"
+                }
+                else {
+                    Write-Log "Ping test failed with exit code $pingExitCode." "ERROR"
+                }
+                Pause-Toolkit
             }
             "3" {
                 try {
@@ -84,11 +107,11 @@ function Show-NetworkMenu {
                 catch {
                     Write-Log "Failed to get Public IP." "ERROR"
                 }
-                Pause
+                Pause-Toolkit
             }
             "4" {
                 Get-NetTCPConnection | Where-Object State -eq Established | Select-Object LocalAddress, LocalPort, RemoteAddress, RemotePort, State, OwningProcess, CreationTime | Format-Table -AutoSize
-                Pause
+                Pause-Toolkit
             }
             "5" { Run-Script "Invoke-WSLNetworkFix.ps1" }
             "6" { Run-Script "Invoke-NetworkGuard.ps1" }
@@ -135,13 +158,14 @@ function Show-ServiceMenu {
                     Restart-Service -Name Spooler -Force -ErrorAction Stop
                     Write-Log "Print Spooler restarted." "SUCCESS"
                 }
-                catch { Write-Log "Failed: $($_.Exception.Message)" "ERROR" }
-                Pause
+                catch { Write-Log "Failed: $($_.Exception.Message)" "ERROR"                }
+                Pause-Toolkit
+
             }
             "2" {
                 Stop-Process -ProcessName explorer -Force -ErrorAction SilentlyContinue
                 Write-Log "Explorer restarted." "SUCCESS"
-                Pause
+                Pause-Toolkit
             }
             "B" { return }
             "b" { return }
@@ -168,17 +192,17 @@ function Show-HealthMenu {
             "1" { Run-Script "Get-SystemReport.ps1" }
             "2" {
                 sfc /verifyonly
-                Pause
+                Pause-Toolkit
             }
             "3" {
                 DISM /Online /Cleanup-Image /CheckHealth
-                Pause
+                Pause-Toolkit
             }
             "4" {
                 Write-Host "Fetching last 10 Error/Critical events..."
                 Get-EventLog -LogName System -EntryType Error, Warning -Newest 10 | Format-Table TimeGenerated, Source, Message -AutoSize
                 Get-EventLog -LogName Application -EntryType Error, Warning -Newest 10 | Format-Table TimeGenerated, Source, Message -AutoSize
-                Pause
+                Pause-Toolkit
             }
             "5" {
                 if (Test-Path "C:\Windows\Minidump") {
@@ -208,7 +232,7 @@ function Show-HealthMenu {
                                 }
                                 Write-Host "---"
                             }
-                            Pause
+                            Pause-Toolkit
                         }
                         elseif ($subChoice -eq 'D') {
                             $confirm = Read-Host "Are you SURE you want to delete all minidumps? (y/N)"
@@ -222,7 +246,7 @@ function Show-HealthMenu {
                 }
                 else {
                     Write-Host "No Minidump folder found (No recent BSODs detected)." -ForegroundColor Green
-                    Pause
+                    Pause-Toolkit
                 }
             }
             "6" { Run-Script "Invoke-DriverUpdate.ps1" }
@@ -253,7 +277,7 @@ function Show-ProcessMenu {
                 if ($pidToKill) {
                     Stop-Process -Id $pidToKill -ErrorAction Continue; Write-Log "Attempted to stop $pidToKill" "INFO"
                 }
-                Pause
+                Pause-Toolkit
             }
             "4" {
                 Run-Script "Invoke-ManageStartupApps.ps1"
@@ -283,15 +307,16 @@ function Show-SecurityFileMenu {
         switch ($choice) {
             "1" {
                 Get-LocalUser | Select-Object Name, Enabled, PasswordRequired, LastLogon, InvalidLoginCount | Format-Table -AutoSize
-                Pause
+                Pause-Toolkit
             }
             "2" {
                 $f = Read-Host "Enter full path to file"
                 if (Test-Path $f) {
                     Get-FileHash -Path $f -Algorithm SHA256 | Format-List
                 }
-                else { Write-Warning "File not found." }
-                Pause
+                else { Write-Warning "File not found."                }
+                Pause-Toolkit
+
             }
             "3" {
                 $d = Read-Host "Enter directory to scan (e.g. C:\Users)"
@@ -299,7 +324,7 @@ function Show-SecurityFileMenu {
                     Write-Host "Scanning... this may take a moment."
                     Get-ChildItem -Path $d -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Length -gt 1GB } | Sort-Object Length -Descending | Select-Object FullName, @{Name = "GB"; Expression = { [math]::Round($_.Length / 1GB, 2) } } | Format-Table -AutoSize
                 }
-                Pause
+                Pause-Toolkit
             }
             "4" { Run-Script "Invoke-PortScan.ps1" }
             "5" { Run-Script "Invoke-ManageFirewallRules.ps1" }
@@ -323,7 +348,8 @@ function Show-MainMenu {
     while ($true) {
         Clear-Host
         Write-Host "===========================" -ForegroundColor Cyan
-        Write-Host " Jack-of-All-SysAdmins v2.0.0" -ForegroundColor Cyan
+        $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot "..\VERSION") -Raw).Trim()
+        Write-Host " Jack-of-All-SysAdmins v$version" -ForegroundColor Cyan
         Write-Host "===========================" -ForegroundColor Cyan
         Write-Host ""
 
@@ -343,12 +369,13 @@ function Show-MainMenu {
             "1" { 
                 while ($true) {
                     Clear-Host; Write-Host "=== Maintenance ===" -ForegroundColor Cyan
-                    Write-Host "1. Disk Cleanup"; Write-Host "2. Windows Update"; Write-Host "3. App Updates (Winget/Choco)"; Write-Host "B. Back"
+                    Write-Host "1. Disk Cleanup"; Write-Host "2. Windows Update"; Write-Host "3. App Updates (Winget/Choco)"; Write-Host "4. Windows Cleanup Manager (Background)"; Write-Host "B. Back"
                     $s = Read-Host "Select"; if ($s -eq 'B') { break }
                     switch ($s) {
-                        "1" { Run-Script "Invoke-DiskCleanup.ps1" }
+                        "1" { Run-DiskCleanup }
                         "2" { Run-Script "Invoke-WindowsUpdate.ps1" }
                         "3" { Run-Script "Invoke-AppUpdate.ps1" }
+                        "4" { Run-DiskCleanup -LaunchWindowsCleanup }
                     }
                 }
             }

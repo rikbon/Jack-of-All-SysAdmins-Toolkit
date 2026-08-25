@@ -57,4 +57,48 @@ function Assert-Admin {
     }
 }
 
+function Show-ToolkitHelp {
+    param([string]$Usage)
+    Write-Host "Usage: $Usage"
+}
+
+function Pause-Toolkit {
+    Write-Host "Press any key to continue..."
+    if ($Host.UI.RawUI) {
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+}
+
+function Invoke-ToolkitScript {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ScriptDirectory,
+        [Parameter(Mandatory = $true)]
+        [string]$ScriptName,
+        [hashtable]$Parameters = @()
+    )
+
+    $path = Join-Path $ScriptDirectory $ScriptName
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        Write-Log "Script $ScriptName not found!" "ERROR"
+        return $false
+    }
+
+    Write-Log "Launching $ScriptName..." "INFO"
+    try {
+        & $path @Parameters
+        if (-not $?) {
+            throw "Child script returned a failure status."
+        }
+        $success = $true
+    }
+    catch {
+        $success = $false
+        Write-Log "$ScriptName failed: $($_.Exception.Message)" "ERROR"
+    }
+    Pause-Toolkit
+    return $success
+}
+
 # Export functions if needed, but dot-sourcing is fine for PS scripts.

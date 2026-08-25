@@ -1,14 +1,9 @@
-# Jack-of-All-SysAdmins
-
-* [Home](Home)
-* [Main Menu & Launchers](SysAdminToolbox)
-
-## Windows Toolkit
-* [Maintenance Tools](Maintenance_Tools)
-* [Security & Auditing](Security_Tools)
-* [Monitoring & Health](Monitoring_Tools)
-* [Management & Backups](Management_Tools)
-* [WSL Optimizations](WSL_Tools)
-
-## Linux Toolkit
-* [Linux Tools Overview](Linux_Tools)
+* [Home](Home.md)
+* [Main Toolbox](../docs/SysAdminToolbox.md)
+* [Linux Tools](../docs/Linux_Tools.md)
+* [macOS Tools](../docs/macOS_Tools.md)
+* [Maintenance Tools](../docs/Maintenance_Tools.md)
+* [Management Tools](../docs/Management_Tools.md)
+* [Monitoring Tools](../docs/Monitoring_Tools.md)
+* [Security Tools](../docs/Security_Tools.md)
+* [WSL Tools](../docs/WSL_Tools.md)

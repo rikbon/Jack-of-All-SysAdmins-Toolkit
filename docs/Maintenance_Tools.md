@@ -6,13 +6,45 @@ These tools are designed to keep the system clean and up-to-date.
 **Script**: `Invoke-DiskCleanup.ps1`
 
 ### Description
-Cleans temporary files from standard locations (`%TEMP%`, `C:\Windows\Temp`, Prefetch).
+Safely cleans the contents of standard temporary locations without deleting the directories themselves. Locked files are skipped and failures are logged. The default cleanup includes:
+
+- Current-user temporary files.
+- `C:\Windows\Temp`.
+- Current-user Internet cache.
+- Explorer thumbnail and icon cache.
+
+Recycle Bin cleanup and Windows Update download-cache cleanup are opt-in because they have broader impact. Windows Cleanup Manager can also be launched in the background.
 
 ### Usage
 ```powershell
 .\Invoke-DiskCleanup.ps1
 ```
-It displays a progress bar during scanning, returns a summary of the space claimed, and logs results to the central log file.
+
+Preview changes without deleting anything:
+
+```powershell
+.\Invoke-DiskCleanup.ps1 -WhatIf
+```
+
+Include the current user's Recycle Bin:
+
+```powershell
+.\Invoke-DiskCleanup.ps1 -IncludeRecycleBin
+```
+
+Include the Windows Update download cache:
+
+```powershell
+.\Invoke-DiskCleanup.ps1 -IncludeWindowsUpdateCache
+```
+
+Launch Windows Cleanup Manager in the background after the toolkit cleanup:
+
+```powershell
+.\Invoke-DiskCleanup.ps1 -LaunchWindowsCleanup
+```
+
+The script requires Administrator privileges, logs skipped locked files, and supports PowerShell's standard `-WhatIf` and `-Confirm` safeguards.
 
 ---
 

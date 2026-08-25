@@ -15,7 +15,10 @@ param (
 
 # --- Load Globals ---
 $GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
-if (Test-Path $GlobalsPath) { . $GlobalsPath }
+if (-not (Test-Path -LiteralPath $GlobalsPath -PathType Leaf)) {
+    throw "Required file not found: $GlobalsPath"
+}
+. $GlobalsPath
 
 Write-Log "Gathering System Information..." "INFO"
 

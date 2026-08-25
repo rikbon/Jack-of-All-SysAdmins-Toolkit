@@ -46,7 +46,7 @@ Generates an immediate terminal report covering:
 A performance monitoring menu that allows you to:
 - Show the top 10 memory-consuming processes.
 - Show the top 10 CPU-consuming processes.
-- Send a `kill -9` signal to forcefully terminate a misbehaving process by its PID.
+- Send a normal termination signal to a selected process by its PID.
 
 ### `audit-users.sh` (Security & File Utilities)
 A quick security audit script that:

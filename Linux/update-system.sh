@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Source globals
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-source "${SCRIPT_DIR}/globals.sh"
+source "${SCRIPT_DIR}/globals.sh" || exit 1
+
+show_help() { printf 'Usage: %s [--update]\n' "$0"; }
+if cli_help_requested "${1:-}"; then show_help; exit 0; fi
+if [[ -n "${1:-}" && "${1:-}" != "--update" ]]; then cli_usage_error "$1"; show_help >&2; exit 2; fi
 
 assert_root
 
@@ -22,35 +26,23 @@ write_log "Detected OS: $PRETTY_NAME" "INFO"
 
 # Define update logic based on detected OS
 if [[ "$OS_ID" == "debian" || "$OS_ID" == "ubuntu" || "$OS_LIKE" == *"debian"* || "$OS_LIKE" == *"ubuntu"* ]]; then
-    write_log "Debian/Ubuntu system detected. Running apt update & upgrade." "INFO"
-    apt-get update -y && apt-get upgrade -y
-    if [ $? -eq 0 ]; then write_log "System updated successfully." "SUCCESS"; else write_log "Update failed." "ERROR"; fi
+    run_logged "Updating Debian/Ubuntu packages" bash -c 'apt-get update -y && apt-get upgrade -y'
 
 elif [[ "$OS_ID" == "fedora" || "$OS_ID" == "centos" || "$OS_ID" == "rhel" || "$OS_LIKE" == *"fedora"* || "$OS_LIKE" == *"rhel"* ]]; then
     if [ -x "$(command -v dnf)" ]; then
-        write_log "Fedora/RHEL system detected. Running dnf upgrade." "INFO"
-        dnf upgrade -y
-        if [ $? -eq 0 ]; then write_log "System updated successfully." "SUCCESS"; else write_log "Update failed." "ERROR"; fi
+        run_logged "Updating Fedora/RHEL packages" dnf upgrade -y
     elif [ -x "$(command -v yum)" ]; then
-        write_log "CentOS/RHEL system detected. Running yum update." "INFO"
-        yum update -y
-        if [ $? -eq 0 ]; then write_log "System updated successfully." "SUCCESS"; else write_log "Update failed." "ERROR"; fi
+        run_logged "Updating CentOS/RHEL packages" yum update -y
     fi
 
 elif [[ "$OS_ID" == "arch" || "$OS_LIKE" == *"arch"* ]]; then
-    write_log "Arch system detected. Running pacman update." "INFO"
-    pacman -Syu --noconfirm
-    if [ $? -eq 0 ]; then write_log "System updated successfully." "SUCCESS"; else write_log "Update failed." "ERROR"; fi
+    run_logged "Updating Arch packages" pacman -Syu --noconfirm
 
 elif [[ "$OS_ID" == "alpine" ]]; then
-    write_log "Alpine system detected. Running apk upgrade." "INFO"
-    apk update && apk upgrade
-    if [ $? -eq 0 ]; then write_log "System updated successfully." "SUCCESS"; else write_log "Update failed." "ERROR"; fi
+    run_logged "Updating Alpine packages" bash -c 'apk update && apk upgrade'
 
 elif [[ "$OS_ID" == "opensuse"* || "$OS_LIKE" == *"suse"* ]]; then
-    write_log "openSUSE system detected. Running zypper update." "INFO"
-    zypper refresh && zypper update -y
-    if [ $? -eq 0 ]; then write_log "System updated successfully." "SUCCESS"; else write_log "Update failed." "ERROR"; fi
+    run_logged "Updating openSUSE packages" bash -c 'zypper refresh && zypper update -y'
 
 else
     write_log "Unsupported package manager or OS ($PRETTY_NAME). Please update manually." "WARN"

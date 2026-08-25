@@ -1,7 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-source "${SCRIPT_DIR}/globals.sh"
+source "${SCRIPT_DIR}/globals.sh" || exit 1
+
+show_help() { printf 'Usage: %s [interactive]\n' "$0"; }
+if cli_help_requested "${1:-}"; then show_help; exit 0; fi
+if [[ -n "${1:-}" && "${1:-}" != "interactive" ]]; then cli_usage_error "$1"; show_help >&2; exit 2; fi
 
 assert_root
 
@@ -20,25 +24,17 @@ manage_service() {
     local action=$1
     read -p "Enter service name (e.g. sshd, nginx): " svc
     if [ -n "$svc" ]; then
-        if [ -x "$(command -v systemctl)" ]; then
-            systemctl $action "$svc"
-            if [ $? -eq 0 ]; then
-                write_log "Successfully ran '$action' on service '$svc'." "SUCCESS"
-            else
-                write_log "Failed to run '$action' on service '$svc'." "ERROR"
-            fi
+        if command -v systemctl >/dev/null 2>&1; then
+            run_logged "Running '$action' on service '$svc'" systemctl "$action" "$svc"
+        elif command -v service >/dev/null 2>&1; then
+            run_logged "Running '$action' on service '$svc'" service "$svc" "$action"
         else
-            service "$svc" $action
-            if [ $? -eq 0 ]; then
-                write_log "Successfully ran '$action' on service '$svc'." "SUCCESS"
-            else
-                write_log "Failed to run '$action' on service '$svc'." "ERROR"
-            fi
+            write_log "Neither systemctl nor service is available." "ERROR"
         fi
     else
         write_log "No service specified." "WARN"
     fi
-    read -p "Press enter to continue..."
+    pause_toolkit
 }
 
 while true; do
@@ -48,12 +44,12 @@ while true; do
     case $choice in
         1)
             write_log "Listing Failed Services:" "INFO"
-            if [ -x "$(command -v systemctl)" ]; then
+            if command -v systemctl >/dev/null 2>&1; then
                 systemctl --failed
             else
                 write_log "systemctl not found. Unable to list failed services easily." "WARN"
             fi
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         2) manage_service "restart" ;;
         3) manage_service "stop" ;;

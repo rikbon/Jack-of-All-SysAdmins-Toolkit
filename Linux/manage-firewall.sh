@@ -1,7 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-source "${SCRIPT_DIR}/globals.sh"
+source "${SCRIPT_DIR}/globals.sh" || exit 1
+
+show_help() { printf 'Usage: %s [interactive]\n' "$0"; }
+if cli_help_requested "${1:-}"; then show_help; exit 0; fi
+if [[ -n "${1:-}" && "${1:-}" != "interactive" ]]; then cli_usage_error "$1"; show_help >&2; exit 2; fi
 
 assert_root
 
@@ -16,9 +20,9 @@ show_menu() {
 }
 
 # Detect firewall backend
-if [ -x "$(command -v ufw)" ]; then
+if command -v ufw >/dev/null 2>&1; then
     FW="ufw"
-elif [ -x "$(command -v firewall-cmd)" ]; then
+elif command -v firewall-cmd >/dev/null 2>&1; then
     FW="firewalld"
 else
     FW="none"
@@ -29,7 +33,7 @@ while true; do
     
     if [ "$FW" == "none" ]; then
         write_log "No supported firewall (UFW/firewalld) found on this system." "ERROR"
-        read -p "Press enter to go back..."
+        pause_toolkit
         break
     fi
 
@@ -39,37 +43,33 @@ while true; do
         1)
             write_log "Firewall Status ($FW):" "INFO"
             if [ "$FW" == "ufw" ]; then ufw status verbose; else firewall-cmd --list-all; fi
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         2)
             read -p "Enter port number to allow (e.g. 80, 443): " port
-            if [[ "$port" =~ ^[0-9]+$ ]]; then
+            if valid_port "$port"; then
                 if [ "$FW" == "ufw" ]; then
-                    ufw allow "$port/tcp"
+                    run_logged "Allowing port $port/tcp" ufw allow "$port/tcp"
                 else
-                    firewall-cmd --permanent --add-port="$port/tcp"
-                    firewall-cmd --reload
+                    run_logged "Allowing port $port/tcp" bash -c "firewall-cmd --permanent --add-port='$port/tcp' && firewall-cmd --reload"
                 fi
-                write_log "Port $port/tcp opened." "SUCCESS"
             else
                 write_log "Invalid port." "ERROR"
             fi
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         3)
             read -p "Enter port number to deny (e.g. 80, 443): " port
-            if [[ "$port" =~ ^[0-9]+$ ]]; then
+            if valid_port "$port"; then
                 if [ "$FW" == "ufw" ]; then
-                    ufw deny "$port/tcp"
+                    run_logged "Denying port $port/tcp" ufw deny "$port/tcp"
                 else
-                    firewall-cmd --permanent --remove-port="$port/tcp"
-                    firewall-cmd --reload
+                    run_logged "Removing port $port/tcp" bash -c "firewall-cmd --permanent --remove-port='$port/tcp' && firewall-cmd --reload"
                 fi
-                write_log "Port $port/tcp denied/removed." "SUCCESS"
             else
                 write_log "Invalid port." "ERROR"
             fi
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         [bB]) break ;;
         *) echo "Invalid option."; sleep 1 ;;

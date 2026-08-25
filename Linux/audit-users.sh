@@ -1,7 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-source "${SCRIPT_DIR}/globals.sh"
+source "${SCRIPT_DIR}/globals.sh" || exit 1
+
+show_help() { printf 'Usage: %s [interactive]\n' "$0"; }
+if cli_help_requested "${1:-}"; then show_help; exit 0; fi
+if [[ -n "${1:-}" && "${1:-}" != "interactive" ]]; then cli_usage_error "$1"; show_help >&2; exit 2; fi
 
 assert_root
 
@@ -24,7 +28,7 @@ while true; do
             write_log "Users with Sudo/Root privileges:" "INFO"
             # Check wheel or sudo group
             grep -E '^sudo|^wheel|^root' /etc/group
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         2)
             write_log "Accounts with empty passwords:" "INFO"
@@ -34,12 +38,12 @@ while true; do
             else
                 write_log "WARNING: Empty passwords found for: $empty_pass" "WARN"
             fi
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         3)
             write_log "Last 10 Logins:" "INFO"
             last -n 10
-            read -p "Press enter to continue..."
+            pause_toolkit
             ;;
         [bB])
             break

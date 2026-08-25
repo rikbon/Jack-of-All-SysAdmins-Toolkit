@@ -1,13 +1,13 @@
 # Jack-of-All-SysAdmins Toolkit
 
-![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-blue)
 ![Shell](https://img.shields.io/badge/Shell-PowerShell%20%7C%20Bash-green)
 ![License](https://img.shields.io/badge/License-MIT-success)
 
-**Version:** 2.0.0
+**Version:** See [`VERSION`](VERSION)
 
 ## Overview
-The Jack-of-All-SysAdmins Toolkit is a unified, menu-driven utility suite designed to streamline routine system administration tasks across both Windows (PowerShell) and Linux (Bash) environments. It emphasizes safety, standardized logging, and operational efficiency.
+The Jack-of-All-SysAdmins Toolkit is a unified, menu-driven utility suite designed to streamline routine system administration tasks across Windows (PowerShell), Linux (Bash), and macOS (Bash) environments. It emphasizes safety, standardized logging, and operational efficiency.
 
 ## Quick Start
 
@@ -25,6 +25,12 @@ sudo bash ./Linux/start-sysadmintoolbox.sh
 ```
 *(Note: Requires root privileges via sudo)*
 
+### macOS (Bash)
+```bash
+bash ./macOS/start-sysadmintoolbox.sh
+```
+*(The initial macOS tools are non-destructive diagnostics.)*
+
 ---
 
 ## Documentation
@@ -38,6 +44,8 @@ Detailed documentation for all modules and commands is available in the `docs/` 
 * [Windows - Monitoring Tools](docs/Monitoring_Tools.md)
 * [Windows - WSL Tools](docs/WSL_Tools.md)
 * [Windows - Management Tools](docs/Management_Tools.md)
+* [macOS Tools](docs/macOS_Tools.md)
+* [Build and Packaging](docs/Build.md)
 
 ---
 
@@ -45,6 +53,7 @@ Detailed documentation for all modules and commands is available in the `docs/` 
 
 * `Windows/`: Contains all PowerShell (`.ps1`) scripts and the Windows TUI launcher.
 * `Linux/`: Contains all Bash (`.sh`) scripts and the Linux TUI launcher.
+* `macOS/`: Contains native macOS Bash scripts and the macOS TUI launcher.
 * `docs/`: Contains comprehensive markdown documentation for all utilities.
 * `logs/`: Centralized log directory where all scripts output uniform logs (`Toolkit_YYYYMMDD.log`).
 

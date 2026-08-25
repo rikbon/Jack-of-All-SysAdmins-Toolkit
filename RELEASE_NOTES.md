@@ -1,4 +1,12 @@
-# Release Notes - v1.3.0
+# Release Notes - v2.5.0
+
+## v2.5.0
+
+* Added native macOS diagnostics, service management, and Homebrew tooling.
+* Added unified Windows, Linux, and macOS packaging.
+* Added centralized version metadata and cross-platform validation.
+* Improved command safety, error handling, cleanup safeguards, and CLI help.
+
 
 **Date**: 2026-03-11
 **Codename**: "The Parallel Patch & Polish"

@@ -19,12 +19,47 @@ param (
 
 $ErrorActionPreference = "Stop"
 
+if ($args -contains '-h' -or $args -contains '--help') {
+    Get-Help $MyInvocation.MyCommand.Path -Detailed
+    exit 0
+}
+
 # --- Load Globals ---
 $GlobalsPath = Join-Path $PSScriptRoot "Globals.ps1"
 if (Test-Path $GlobalsPath) { . $GlobalsPath }
 
 # --- Admin Check ---
 Assert-Admin
+
+function Get-WingetUpgradeIds {
+    param([string[]]$OutputLines)
+
+    foreach ($line in $OutputLines) {
+        if ([string]::IsNullOrWhiteSpace($line) -or $line -match '^\s*(Name|---|No upgrade|This operation)') { continue }
+        $parts = $line -split '\s{2,}' | ForEach-Object { $_.Trim() }
+        if ($parts.Count -ge 2 -and $parts[1] -match '^[A-Za-z0-9][A-Za-z0-9._-]+$') {
+            $parts[1]
+        }
+    }
+}
+
+function Get-WingetUpgrades {
+    $jsonOutput = & winget upgrade --accept-source-agreements --disable-interactivity --output json 2>$null | Out-String
+    if ($LASTEXITCODE -eq 0 -and $jsonOutput.Trim()) {
+        try {
+            $parsed = $jsonOutput | ConvertFrom-Json -ErrorAction Stop
+            $ids = @($parsed | ForEach-Object { $_.Id } | Where-Object { $_ -match '^[A-Za-z0-9][A-Za-z0-9._-]+$' })
+            if ($ids.Count -gt 0) { return $ids }
+        }
+        catch {
+            Write-Log "Winget JSON output could not be parsed; using table fallback." "DEBUG"
+        }
+    }
+
+    $tableOutput = & winget upgrade --accept-source-agreements --disable-interactivity 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "Winget upgrade discovery failed with exit code $LASTEXITCODE." }
+    return @(Get-WingetUpgradeIds -OutputLines $tableOutput)
+}
 
 Write-Log "Starting Application Update Process..." "INFO"
 
@@ -68,7 +103,7 @@ else {
     if ($chocoJob) { $jobsToWait += $chocoJob }
     Wait-Job $jobsToWait | Out-Null
 
-    # Get list of ID's that need upgrade from Winget
+    # Get list of IDs that need upgrade from Winget.
     $upgradeOutput = Receive-Job $wingetJob
     Remove-Job $wingetJob
 
@@ -76,27 +111,12 @@ else {
         $chocoOut = Receive-Job $chocoJob
         Remove-Job $chocoJob
     }
-    # Output format is usually: Name | Id | Version | Available | Source
-    # We look for lines that look like package entries (not headers)
-    $lines = $upgradeOutput -split "`r`n"
-    $idsToUpgrade = @()
-
-    foreach ($line in $lines) {
-        # Skip headers/empty lines
-        if ($line -match "^Name" -or $line -match "^-" -or [string]::IsNullOrWhiteSpace($line)) { continue }
-        
-        # Splitting by multiple spaces is a decent heuristic.
-        $parts = $line -split "\s{2,}"
-        if ($parts.Count -ge 2) {
-            # The ID is usually the second column
-            $id = $parts[1]
-            
-            # Validation: ID shouldn't be a version number or too short.
-            # winget IDs usually contain dots or are alphanumeric.
-            if ($id -match "\." -and $id.Length -gt 2) {
-                $idsToUpgrade += $id
-            }
-        }
+    try {
+        $idsToUpgrade = @(Get-WingetUpgrades)
+    }
+    catch {
+        Write-Log "Winget upgrade discovery failed: $($_.Exception.Message)" "ERROR"
+        $idsToUpgrade = @()
     }
 
     if ($idsToUpgrade.Count -eq 0) {
@@ -123,10 +143,16 @@ else {
 
                 Write-Log "Upgrading $id..." "INFO"
                 # Running iteratively allows one failure (404) to not block others
-                $wingetArgs = "upgrade --id $id --accept-package-agreements --accept-source-agreements --include-unknown"
-                if ($QuietMode) { $wingetArgs += " --silent" }
+                $wingetArgs = @(
+                    "upgrade"
+                    "--id", $id
+                    "--accept-package-agreements"
+                    "--accept-source-agreements"
+                    "--include-unknown"
+                )
+                if ($QuietMode) { $wingetArgs += "--silent" }
                 
-                Invoke-Expression "winget $wingetArgs"
+                & winget @wingetArgs
                 
                 if ($LASTEXITCODE -ne 0) {
                     Write-Log "Failed to upgrade $id (Exit Code: $LASTEXITCODE)." "WARN"
@@ -155,9 +181,9 @@ if (Get-Command choco -ErrorAction SilentlyContinue) {
         else {
             Write-Progress -Activity "Upgrading Applications (Chocolatey)" -Status "Upgrading all packages" -PercentComplete 50
             Write-Log "Upgrading all Chocolatey packages..." "INFO"
-            $chocoArgs = "upgrade all -y"
-            if ($QuietMode) { $chocoArgs += " -q" }
-            Invoke-Expression "choco $chocoArgs"
+            $chocoArgs = @("upgrade", "all", "-y")
+            if ($QuietMode) { $chocoArgs += "-q" }
+            & choco @chocoArgs
             Write-Log "Chocolatey upgrade complete." "SUCCESS"
             Write-Progress -Activity "Upgrading Applications (Chocolatey)" -Completed
         }

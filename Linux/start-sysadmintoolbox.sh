@@ -1,18 +1,19 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # --- start-sysadmintoolbox.sh ---
 # The master menu for the Linux Toolkit
 
 # Source globals
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-source "${SCRIPT_DIR}/globals.sh"
+source "${SCRIPT_DIR}/globals.sh" || exit 1
 
 assert_root
+VERSION="$(<"${SCRIPT_DIR}/../VERSION")"
 
 show_main_menu() {
     clear
     echo -e "${CYAN}=================================${NC}"
-    echo -e "${CYAN} Jack-of-All-SysAdmins Linux v1.1 ${NC}"
+    echo -e "${CYAN} Jack-of-All-SysAdmins Linux v${VERSION} ${NC}"
     echo -e "${CYAN}=================================${NC}"
     echo ""
     echo "1. System Maintenance (Clean, Update)"
@@ -32,7 +33,12 @@ run_script() {
     
     if [ -f "$script_path" ]; then
         write_log "Launching $script_name..." "INFO"
-        bash "$script_path"
+        if bash "$script_path"; then
+            return 0
+        fi
+        local exit_code=$?
+        write_log "$script_name failed (exit code: $exit_code)." "ERROR"
+        return "$exit_code"
     else
         write_log "Script $script_name not found at $script_path" "ERROR"
         sleep 2
@@ -55,8 +61,8 @@ while true; do
                 read -p "Select an option: " subchoice
                 
                 case $subchoice in
-                    1) run_script "cleanup.sh" ; read -p "Press enter to continue..." ;;
-                    2) run_script "update-system.sh" ; read -p "Press enter to continue..." ;;
+                    1) run_script "cleanup.sh" ; pause_toolkit ;;
+                    2) run_script "update-system.sh" ; pause_toolkit ;;
                     [bB]) break ;;
                 esac
             done
@@ -71,7 +77,7 @@ while true; do
                 read -p "Select an option: " subchoice
                 
                 case $subchoice in
-                    1) run_script "monitor-disk.sh" ; read -p "Press enter to continue..." ;;
+                    1) run_script "monitor-disk.sh" ; pause_toolkit ;;
                     [bB]) break ;;
                 esac
             done
