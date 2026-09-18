@@ -3,11 +3,6 @@
 # --- start-sysadmintoolbox.sh ---
 # The master menu for the Linux Toolkit
 
-<<<<<<< HEAD
-# Source globals
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-source "${SCRIPT_DIR}/globals.sh" || exit 1
-=======
 # Resolve the *real* directory of this script, even when invoked through a
 # symlink (e.g. the /usr/local/bin/sysadmin-toolbox shortcut created by
 # install.sh). Without this, `dirname` returns the symlink's parent dir and
@@ -21,8 +16,7 @@ while [ -L "$__SRC" ]; do
 done
 SCRIPT_DIR="$(cd "$(dirname "$__SRC")" >/dev/null 2>&1 && pwd)"
 unset __SRC __LINK_DIR
-source "${SCRIPT_DIR}/globals.sh"
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
+source "${SCRIPT_DIR}/globals.sh" || exit 1
 
 assert_root
 VERSION="$(<"${SCRIPT_DIR}/../VERSION")"
@@ -30,11 +24,7 @@ VERSION="$(<"${SCRIPT_DIR}/../VERSION")"
 show_main_menu() {
     clear
     echo -e "${CYAN}=================================${NC}"
-<<<<<<< HEAD
     echo -e "${CYAN} Jack-of-All-SysAdmins Linux v${VERSION} ${NC}"
-=======
-    echo -e "${CYAN} Jack-of-All-SysAdmins Linux v2.2.1 ${NC}"
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
     echo -e "${CYAN}=================================${NC}"
     echo ""
     echo "1. System Maintenance (Clean, Update)"

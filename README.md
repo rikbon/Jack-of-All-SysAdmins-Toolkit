@@ -4,11 +4,7 @@
 ![Shell](https://img.shields.io/badge/Shell-PowerShell%20%7C%20Bash-green)
 ![License](https://img.shields.io/badge/License-MIT-success)
 
-<<<<<<< HEAD
 **Version:** See [`VERSION`](VERSION)
-=======
-**Version:** 2.2.1
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
 
 ## Overview
 The Jack-of-All-SysAdmins Toolkit is a unified, menu-driven utility suite designed to streamline routine system administration tasks across Windows (PowerShell), Linux (Bash), and macOS (Bash) environments. It emphasizes safety, standardized logging, and operational efficiency.
@@ -16,7 +12,7 @@ The Jack-of-All-SysAdmins Toolkit is a unified, menu-driven utility suite design
 ## Install (one-liner)
 
 Both platforms ship a self-contained bootstrapper that installs the toolkit
-`to a fixed location, adds it to your PATH, and installs every runtime
+to a fixed location, adds it to your PATH, and installs every runtime
 dependency the dashboard scripts need. After install, launch the dashboard
 with `sysadmin-toolbox`.
 

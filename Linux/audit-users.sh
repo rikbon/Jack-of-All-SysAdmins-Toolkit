@@ -42,11 +42,6 @@ while true; do
             ;;
         3)
             write_log "Last 10 Logins:" "INFO"
-<<<<<<< HEAD
-            last -n 10
-            pause_toolkit
-=======
-
             show_last_logins() {
                 # 1) Prefer `last` (from util-linux) if present.
                 if command -v last >/dev/null 2>&1; then
@@ -56,20 +51,20 @@ while true; do
                 # 2) Fall back to `lastlog` (from shadow/login), shows recent
                 #    successful logins for local users.
                 if command -v lastlog >/dev/null 2>&1; then
-                    write_log "`'last'` not found; falling back to `'lastlog'`." "WARN"
+                    write_log "'last' not found; falling back to 'lastlog'." "WARN"
                     lastlog | grep -vi "never"
                     return
                 fi
                 # 3) Fall back to dumping /var/log/wtmp directly with utmpdump.
                 if command -v utmpdump >/dev/null 2>&1 && [ -f /var/log/wtmp ]; then
-                    write_log "`'last'` not found; dumping /var/log/wtmp via utmpdump." "WARN"
+                    write_log "'last' not found; dumping /var/log/wtmp via utmpdump." "WARN"
                     utmpdump /var/log/wtmp | awk -F'[\\[\\]]' '$2==8{print}' \
                         | tail -n 10
                     return
                 fi
                 # 4) Last-ditch: grep successful ssh/console logins from auth logs.
                 if ls /var/log/auth.log* /var/log/secure* >/dev/null 2>&1; then
-                    write_log "No `last`-family tool found; showing recent auth logins." "WARN"
+                    write_log "No 'last'-family tool found; showing recent auth logins." "WARN"
                     grep -h "Accepted \(publickey\|password\)\|session opened" \
                         /var/log/auth.log /var/log/secure 2>/dev/null \
                         | tail -n 10
@@ -79,8 +74,7 @@ while true; do
             }
 
             show_last_logins
-            read -p "Press enter to continue..."
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
+            pause_toolkit
             ;;
         [bB])
             break

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Release Notes - v2.5.0
 
 ## v2.5.0
@@ -8,7 +7,8 @@
 * Added centralized version metadata and cross-platform validation.
 * Improved command safety, error handling, cleanup safeguards, and CLI help.
 
-=======
+---
+
 # Release Notes - v2.2.1
 
 **Date**: 2026-06-29
@@ -68,7 +68,6 @@ This release turns the SysAdmin Toolbox from "run the launcher from the cloned r
 ---
 
 # Release Notes - v1.3.0
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
 
 **Date**: 2026-03-11
 **Codename**: "The Parallel Patch & Polish"
