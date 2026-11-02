@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck and zip
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y shellcheck zip unzip
+          else
+            brew install shellcheck zip
+          fi
+
+      - name: Run validation suite
+        run: ./validate.sh
+
+  powershell:
+    name: PowerShell
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse all PowerShell scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Path . -Recurse -Include *.ps1 |
+            Where-Object { $_.FullName -notmatch '\\.git\\' } |
+            ForEach-Object {
+              Write-Host "Parsing $($_.FullName)"
+              $parseErrors = $null
+              [System.Management.Automation.Language.Parser]::ParseFile(
+                  $_.FullName, [ref]$null, [ref]$parseErrors) | Out-Null
+              if ($parseErrors) {
+                $failed = $true
+                $parseErrors | Format-List
+              }
+            }
+          if ($failed) { exit 1 }
+
+      - name: Run tests
+        shell: pwsh
+        run: ./validate.sh
+
+  line-endings:
+    name: Line endings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Bash scripts with CRLF endings fail at runtime with errors such as
+      # `set: pipefail\r: invalid option name`.
+      - name: Shell scripts must use LF endings
+        run: |
+          if grep -rlU $'\r' --include='*.sh' . ; then
+            echo "::error::CRLF line endings found in shell scripts"
+            exit 1
+          fi
+
+      - name: .gitattributes keeps shell scripts as LF
+        run: grep -Fq '*.sh   text eol=lf' .gitattributes || grep -Eq '\*\.sh[[:space:]]+text eol=lf' .gitattributes

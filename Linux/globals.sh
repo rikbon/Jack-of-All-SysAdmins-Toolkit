@@ -14,15 +14,21 @@ trap _toolkit_error_trap ERR
 
 # --- Configuration ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+source "${SCRIPT_DIR}/cli.sh" || exit 1
 
-cli_help_requested() {
-    [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]
+# Interactive menus must survive an expected failure (a `grep` with no matches,
+# killing a PID owned by another user, ...). `set -e` plus the ERR trap would
+# otherwise abort the whole TUI, so wrap such commands in `try`, which always
+# succeeds and only records the failure at DEBUG level.
+try() {
+    local exit_code=0
+    "$@" || exit_code=$?
+    if (( exit_code != 0 )); then
+        write_log "Command failed (exit code: $exit_code): $*" "DEBUG"
+    fi
+    return 0
 }
 
-cli_usage_error() {
-    printf 'Unknown option: %s\n' "$1" >&2
-    return 2
-}
 LOG_DIR="${SCRIPT_DIR}/../logs"
 mkdir -p "$LOG_DIR"
 
@@ -56,6 +62,14 @@ valid_port() {
     [[ "$1" =~ ^[0-9]+$ ]] && (( 1 <= 10#$1 && 10#$1 <= 65535 ))
 }
 
+valid_pid() {
+    [[ "$1" =~ ^[0-9]+$ ]] && (( 1 < 10#$1 ))
+}
+
+valid_pid() {
+    [[ "$1" =~ ^[0-9]+$ ]] && (( 1 < 10#$1 ))
+}
+
 run_logged() {
     local description="$1"
     shift
@@ -81,6 +95,12 @@ write_log() {
     # Append to log file
     echo "$log_entry" >> "$LOG_FILE"
 
+    # `--quiet` silences the console only. The log file stays a faithful audit
+    # trail: an operator running a tool quietly still wants the record on disk.
+    if [[ "${TOOLKIT_QUIET:-0}" == "1" ]]; then
+        return 0
+    fi
+
     # Print to console with color
     case "$level" in
         "INFO")    echo -e "${WHITE}${log_entry}${NC}" ;;
@@ -92,6 +112,8 @@ write_log() {
     esac
 }
 
+# Root is only needed by the privileged tools, so the launcher does not assert
+# it globally: the read-only ones stay usable by an unprivileged operator.
 assert_root() {
     if [[ $EUID -ne 0 ]]; then
         write_log "This script requires root privileges. Please run with sudo." "ERROR"

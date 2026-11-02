@@ -51,10 +51,10 @@ function Run-Script {
 function Run-DiskCleanup {
     param([switch]$LaunchWindowsCleanup)
     if ($LaunchWindowsCleanup) {
-        Invoke-ToolkitScript -ScriptDirectory $ScriptDir -ScriptName "Invoke-DiskCleanup.ps1" -Parameters @{ LaunchWindowsCleanup = $true }
+        Invoke-ToolkitScript -ScriptDirectory $ScriptDir -ScriptName "Invoke-DiskCleanup.ps1" -Parameters @{ LaunchWindowsCleanup = $true; Confirm = $false }
     }
     else {
-        Invoke-ToolkitScript -ScriptDirectory $ScriptDir -ScriptName "Invoke-DiskCleanup.ps1"
+        Invoke-ToolkitScript -ScriptDirectory $ScriptDir -ScriptName "Invoke-DiskCleanup.ps1" -Parameters @{ Confirm = $false }
     }
 }
 
@@ -174,6 +174,23 @@ function Show-ServiceMenu {
 }
 
 # --- Module: System Health ---
+function Read-ToolkitConfig {
+    $ConfigPath = Join-Path $PSScriptRoot ".toolkit-config.ps1"
+    if (Test-Path -LiteralPath $ConfigPath) {
+        try {
+            $cfg = ConvertFrom-Json (Get-Content -LiteralPath $ConfigPath -Raw -ErrorAction Stop)
+            return $cfg
+        } catch {}
+    }
+    return @{
+        ThresholdGB      = 10
+        EmailAlertsEnabled=$false
+        SmtpServer       = ""
+        ToAddress        = ""
+        FromAddress      = ""
+    }
+    }
+
 function Show-HealthMenu {
     while ($true) {
         Clear-Host
@@ -200,8 +217,15 @@ function Show-HealthMenu {
             }
             "4" {
                 Write-Host "Fetching last 10 Error/Critical events..."
-                Get-EventLog -LogName System -EntryType Error, Warning -Newest 10 | Format-Table TimeGenerated, Source, Message -AutoSize
-                Get-EventLog -LogName Application -EntryType Error, Warning -Newest 10 | Format-Table TimeGenerated, Source, Message -AutoSize
+                try {
+                    Get-WinEvent -FilterHashtable @{ LogName = 'System'; Level = 1, 2, 3 } -MaxEvents 10 -ErrorAction Stop |
+                        Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message | Format-List
+                    Get-WinEvent -FilterHashtable @{ LogName = 'Application'; Level = 1, 2, 3 } -MaxEvents 10 -ErrorAction Stop |
+                        Select-Object TimeCreated, ProviderName, Id, LevelDisplayName, Message | Format-List
+                }
+                catch {
+                    Write-Log "Failed to read event logs: $($_.Exception.Message)" "ERROR"
+                }
                 Pause-Toolkit
             }
             "5" {
@@ -222,10 +246,20 @@ function Show-HealthMenu {
                                 Write-Host "Checking Event Log for dump: $($dump.Name) ($($dump.CreationTime))" -ForegroundColor Cyan
                                 $start = $dump.CreationTime.AddMinutes(-5)
                                 $end = $dump.CreationTime.AddMinutes(5)
-                                # Event ID 1001 is typically BugCheck in System log
-                                $events = Get-EventLog -LogName System -Source "Microsoft-Windows-WER-SystemErrorReporting", "BugCheck" -After $start -Before $end -ErrorAction SilentlyContinue
-                                if ($events) {
-                                    $events | Select-Object TimeGenerated, EntryType, Message | Format-List
+                                # Event ID 1001 is typically BugCheck in System log.
+                                # Get-WinEvent works on PowerShell 5.1 and 7+ alike.
+                                $events = @()
+                                foreach ($provider in @('Microsoft-Windows-WER-SystemErrorReporting', 'BugCheck')) {
+                                    $events += Get-WinEvent -FilterHashtable @{
+                                        LogName   = 'System'
+                                        ProviderName = $provider
+                                        Id        = 1001
+                                        StartTime = $start
+                                        EndTime   = $end
+                                    } -ErrorAction SilentlyContinue
+                                }
+                                if ($events.Count -gt 0) {
+                                    $events | Select-Object TimeCreated, ProviderName, Id, Message | Format-List
                                 }
                                 else {
                                     Write-Warning "  No correlated Event Log entries found around this time."
@@ -242,7 +276,7 @@ function Show-HealthMenu {
                             }
                         }
                     } 
-                    else { Write-Host "Minidump folder exists but is empty (Good news!)." -ForegroundColor Green; Pause }
+                    else { Write-Host "Minidump folder exists but is empty (Good news!)." -ForegroundColor Green; Pause-Toolkit }
                 }
                 else {
                     Write-Host "No Minidump folder found (No recent BSODs detected)." -ForegroundColor Green
@@ -270,12 +304,28 @@ function Show-ProcessMenu {
         
         $choice = Read-Host "Select"
         switch ($choice) {
-            "1" { Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10 Id, ProcessName, @{Name = "MB"; Expression = { [math]::Round($_.WorkingSet / 1MB, 1) } } | Format-Table -AutoSize; Pause }
-            "2" { Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 Id, ProcessName, CPU | Format-Table -AutoSize; Pause }
+            "1" { Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10 Id, ProcessName, @{Name = "MB"; Expression = { [math]::Round($_.WorkingSet / 1MB, 1) } } | Format-Table -AutoSize; Pause-Toolkit }
+            "2" { Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 Id, ProcessName, CPU | Format-Table -AutoSize; Pause-Toolkit }
             "3" {
-                $pidToKill = Read-Host "Enter Process ID to kill"
-                if ($pidToKill) {
-                    Stop-Process -Id $pidToKill -ErrorAction Continue; Write-Log "Attempted to stop $pidToKill" "INFO"
+                $pidToKill = Read-Host "Enter Process ID to terminate"
+                $parsedPid = 0
+                if ([int]::TryParse($pidToKill, [ref]$parsedPid) -and $parsedPid -gt 1) {
+                    $confirm = Read-Host "Send TERM to PID $parsedPid? (y/N)"
+                    if ($confirm -eq 'y') {
+                        try {
+                            Stop-Process -Id $parsedPid -ErrorAction Stop
+                            Write-Log "Terminated process $parsedPid" "SUCCESS"
+                        }
+                        catch {
+                            Write-Log "Failed to terminate PID ${parsedPid}: $($_.Exception.Message)" "ERROR"
+                        }
+                    }
+                    else {
+                        Write-Log "Process termination cancelled." "INFO"
+                    }
+                }
+                else {
+                    Write-Log "Invalid process ID." "WARN"
                 }
                 Pause-Toolkit
             }
@@ -348,12 +398,8 @@ function Show-MainMenu {
     while ($true) {
         Clear-Host
         Write-Host "===========================" -ForegroundColor Cyan
-<<<<<<< HEAD
         $version = (Get-Content -LiteralPath (Join-Path $PSScriptRoot "..\VERSION") -Raw).Trim()
         Write-Host " Jack-of-All-SysAdmins v$version" -ForegroundColor Cyan
-=======
-        Write-Host " Jack-of-All-SysAdmins v2.2.1" -ForegroundColor Cyan
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
         Write-Host "===========================" -ForegroundColor Cyan
         Write-Host ""
 
@@ -363,14 +409,16 @@ function Show-MainMenu {
         Write-Host "4. Service Utility"
         Write-Host "5. System Health & Troubleshooting"
         Write-Host "6. Process & Performance"
+
         Write-Host "7. Security & File Utilities"
         Write-Host "8. Logging & Auditing"
+Write-Host "9. Configuration (Threshold, Email alerts)"
         Write-Host "Q. Quit"
         
         $choice = Read-Host "Select a Category"
         
         switch ($choice) {
-            "1" { 
+            "1" {
                 while ($true) {
                     Clear-Host; Write-Host "=== Maintenance ===" -ForegroundColor Cyan
                     Write-Host "1. Disk Cleanup"; Write-Host "2. Windows Update"; Write-Host "3. App Updates (Winget/Choco)"; Write-Host "4. Windows Cleanup Manager (Background)"; Write-Host "B. Back"
@@ -400,6 +448,10 @@ function Show-MainMenu {
             "6" { Show-ProcessMenu }
             "7" { Show-SecurityFileMenu }
             "8" { Show-LoggingMenu }
+            "9" {
+                Write-Host "Running configuration wizard..." -ForegroundColor Cyan
+                Run-Script "Invoke-Configure.ps1"
+            }
             "Q" { exit }
             "q" { exit }
         }

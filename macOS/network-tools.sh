@@ -38,7 +38,7 @@ if [[ "${1:-interactive}" == "--interfaces" ]]; then show_interfaces; exit $?; f
 if [[ "${1:-interactive}" == "--listening" ]]; then show_listening_sockets; exit $?; fi
 if [[ "${1:-interactive}" == "--public-ip" ]]; then show_public_ip; exit $?; fi
 if [[ "${1:-interactive}" == "--ping" ]]; then test_connectivity; exit $?; fi
-if [[ "${1:-interactive}" != "interactive" ]]; then cli_usage_error "${1:-}"; show_help >&2; exit 2; fi
+if [[ "${1:-interactive}" != "interactive" ]]; then cli_usage_error "${1:-}" || true; show_help >&2; exit 2; fi
 
 while true; do
     show_menu

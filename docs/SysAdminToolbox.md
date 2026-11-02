@@ -24,7 +24,11 @@ sudo bash ./Linux/start-sysadmintoolbox.sh
 ```
 
 ### macOS (Bash)
-The initial macOS tools are non-destructive diagnostics and can be launched without administrator privileges:
+
+The diagnostic tools run without administrator privileges. The tools that change
+system state (`cleanup.sh`, `manage-firewall.sh`, `update-system.sh`) call
+`assert_root` themselves and exit with a clear message otherwise, so you can
+start the launcher unprivileged and escalate only where it is needed:
 
 ```bash
 bash ./macOS/start-sysadmintoolbox.sh
@@ -32,18 +36,24 @@ bash ./macOS/start-sysadmintoolbox.sh
 
 ## Menu Structures
 
-Both launchers share a similar organizational structure:
-1.  **System Maintenance**: Access tools for cleaning disks and updating the OS/apps.
-2.  **Disk & Storage**: Monitor disk space and manage storage.
-3.  **Network Utility**: Run network diagnostics and checks.
-4.  *(Windows Only)* **Service Utility**: Restart common services like Print Spooler.
-5.  *(Windows Only)* **System Health**: Generate reports and run system checks.
-6.  *(Windows Only)* **Process & Performance**: Monitor resources.
-7.  *(Windows Only)* **Security & File Utilities**: Audit users and files.
-8.  *(Windows Only)* **Logging & Auditing**: Archive logs.
+The Linux and macOS launchers share the exact same seven-category structure, and
+the tool file names match one for one:
 
-*(Note: The Linux and macOS toolkits are actively expanding to reach broader feature parity with the Windows suite.)*
+1.  **System Maintenance**: Cleanup (`cleanup.sh`) and updates (`update-system.sh`).
+2.  **Disk & Storage**: Monitor disk space (`monitor-disk.sh`).
+3.  **Network Utility**: Network diagnostics (`network-tools.sh`).
+4.  **Service Utility**: `launchctl` service control (`manage-services.sh`).
+5.  **System Health & Troubleshooting**: System reports (`get-sysreport.sh`).
+6.  **Process & Performance**: Top processes and termination (`process-monitor.sh`).
+7.  **Security & File Utilities**: User audit (`audit-users.sh`) and firewall (`manage-firewall.sh`).
+
+The Windows launcher adds two categories the other platforms have no equivalent
+for: **Logging & Auditing** and the WSL maintenance tools.
 
 ## Features
-- **Auto-Elevation**: Both scripts ensure you are running with the necessary permissions (`RunAs` for Windows, `sudo` enforcement for Linux).
+- **Auto-Elevation**: Windows elevates with `RunAs`, Linux enforces `sudo` via
+  `assert_root`, and macOS asserts it per tool so diagnostics stay unprivileged.
 - **Standardized Logging**: All actions performed via the menus are logged to the centralized `logs/Toolkit_YYYYMMDD.log` using the shared logging functions (`Write-Log` / `write_log`).
+- **Resilient Menus**: The launchers log the real exit code of each tool they
+  launch and wrap diagnostic commands in `try`, so an expected failure returns
+  you to the menu instead of terminating the session.

@@ -4,11 +4,7 @@
 ![Shell](https://img.shields.io/badge/Shell-PowerShell%20%7C%20Bash-green)
 ![License](https://img.shields.io/badge/License-MIT-success)
 
-<<<<<<< HEAD
 **Version:** See [`VERSION`](VERSION)
-=======
-**Version:** 2.2.1
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
 
 ## Overview
 The Jack-of-All-SysAdmins Toolkit is a unified, menu-driven utility suite designed to streamline routine system administration tasks across Windows (PowerShell), Linux (Bash), and macOS (Bash) environments. It emphasizes safety, standardized logging, and operational efficiency.
@@ -145,7 +141,28 @@ sudo bash ./Linux/start-sysadmintoolbox.sh
 ```bash
 bash ./macOS/start-sysadmintoolbox.sh
 ```
-*(The initial macOS tools are non-destructive diagnostics.)*
+*(Diagnostics run unprivileged; `cleanup.sh`, `manage-firewall.sh` and `update-system.sh` require root.)*
+
+---
+
+## Validation & Tests
+
+Run the full suite before packaging or opening a PR:
+
+```bash
+./validate.sh
+```
+
+It verifies shell syntax and CRLF line endings across every shell script
+(platform directories, root scripts, and tests), the `VERSION` format, the
+behavioural test suites, `shellcheck`, PowerShell parsing (when `pwsh` is
+available), and the layout of the generated archives.
+
+The same suite runs automatically on every push and pull request via GitHub
+Actions (Ubuntu, macOS, and Windows jobs).
+
+> Shell scripts must use LF line endings. `.gitattributes` enforces this, because
+> CRLF breaks bash at runtime (`set: pipefail\r: invalid option name`).
 
 ---
 
@@ -171,13 +188,24 @@ Detailed documentation for all modules and commands is available in the `docs/` 
 * `Linux/`: Contains all Bash (`.sh`) scripts and the Linux TUI launcher.
 * `macOS/`: Contains native macOS Bash scripts and the macOS TUI launcher.
 * `docs/`: Contains comprehensive markdown documentation for all utilities.
+* `tests/`: Bash test suites run by `validate.sh`.
 * `logs/`: Centralized log directory where all scripts output uniform logs (`Toolkit_YYYYMMDD.log`).
+
+`Linux/` and `macOS/` deliberately share the same tool file names
+(`get-sysreport.sh`, `monitor-disk.sh`, `network-tools.sh`,
+`process-monitor.sh`, `manage-services.sh`, `audit-users.sh`, `cleanup.sh`,
+`manage-firewall.sh`, `update-system.sh`) and the same seven-category launcher.
+Only the implementation is platform-native: `apt`/`dnf` on Linux,
+`brew`/`softwareupdate` on macOS.
 
 ---
 
 ## Core Principles
-* **Auto-Elevation**: Scripts automatically request the necessary permissions (Administrator on Windows, root on Linux) prior to execution.
+* **Auto-Elevation**: Windows elevates with `RunAs`, Linux enforces `sudo` via
+  `assert_root`, and macOS asserts it per tool so diagnostics stay unprivileged.
 * **Standardized Logging**: All tools utilize a unified logging function to output events to a central log file with uniform severity levels (INFO, SUCCESS, WARN, ERROR, DEBUG).
+* **Consistent CLI**: Every tool accepts `--help` and `--quiet`. `--quiet`
+  silences the console but keeps the full audit trail on disk.
 
 ---
 

@@ -40,6 +40,14 @@ copy_if_exists() {
 rm -rf "$STAGING_ROOT"
 mkdir -p "$OUTPUT_DIRECTORY" "$STAGING_ROOT"
 
+# Canonical asset names expected by the installers.
+# install.sh downloads "Jack-of-All-SysAdmins-Toolkit-linux.tar.gz"; without it
+# the one-liner installer always falls back to the GitHub source archive.
+LINUX_TARBALL_NAME="Jack-of-All-SysAdmins-Toolkit-linux.tar.gz"
+WINDOWS_ZIP_NAME="Jack-of-All-SysAdmins-Toolkit-windows.zip"
+
+produced_linux_tarball=0
+
 for platform in Windows Linux macOS; do
     platform_source="${REPOSITORY_ROOT}/${platform}"
     archive_root="${STAGING_ROOT}/${platform}/SysAdminToolbox_${platform}"
@@ -68,7 +76,22 @@ for platform in Windows Linux macOS; do
         exit 1
     fi
 
+    # Canonical aliases consumed by the installers.
+    if [[ "$platform" == "Windows" ]]; then
+        cp "$zip_path" "${OUTPUT_DIRECTORY}/${WINDOWS_ZIP_NAME}"
+    elif [[ "$platform" == "Linux" ]] && command -v tar >/dev/null 2>&1; then
+        if (cd "${STAGING_ROOT}/${platform}/SysAdminToolbox_Linux" && tar -czf "${OUTPUT_DIRECTORY}/${LINUX_TARBALL_NAME}" .); then
+            produced_linux_tarball=1
+        else
+            printf 'tar failed; canonical Linux tarball was not produced.\n' >&2
+        fi
+    fi
+
 done
 
 rm -rf "$STAGING_ROOT"
 printf 'Build complete. Archives available in %s\n' "$OUTPUT_DIRECTORY"
+
+if [[ "$produced_linux_tarball" -eq 0 ]]; then
+    printf 'Note: %s was not produced (tar unavailable or failed); install.sh will fall back to the source archive.\n' "$LINUX_TARBALL_NAME" >&2
+fi

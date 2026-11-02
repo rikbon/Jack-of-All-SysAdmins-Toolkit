@@ -2,7 +2,32 @@
 
 The `Linux/` directory contains bash scripts designed to automate system administration tasks on Linux environments (such as Ubuntu/Debian, RHEL/Fedora/CentOS, Arch, Alpine, and openSUSE). 
 
-All tools log to the central `logs/Toolkit_YYYYMMDD.log` file using standardized functions defined in `globals.sh`.
+All tools log to the central `logs/Toolkit_YYYYMMDD.log` file using standardized functions defined in `globals.sh`, which sources the shared option helpers from `cli.sh`.
+
+## Command-line options
+
+Every tool accepts `--help` (`-h`) and `--quiet` (`-q`). The interactive menu is
+the default, and tools that do work also expose a non-interactive flag, for example:
+
+```bash
+sudo bash ./Linux/monitor-disk.sh --check
+sudo bash ./Linux/cleanup.sh --cleanup
+sudo bash ./Linux/get-sysreport.sh --report
+sudo bash ./Linux/network-tools.sh --quiet
+```
+
+`--quiet` silences the console only: the log file always keeps the full audit
+trail, so an operator running a tool quietly still has the record on disk.
+
+Unknown options exit with status `2` and print the usage line.
+
+The tool file names match the macOS platform one for one, so the same commands
+apply on both.
+
+> Interactive menus wrap diagnostic commands in `try`, because `set -e` plus the
+> `ERR` trap in `globals.sh` would otherwise terminate the whole TUI when an
+> expected command (a `grep` with no matches, killing a PID owned by another
+> user) returns non-zero.
 
 ## Main Launcher
 - **`start-sysadmintoolbox.sh`**: The interactive Text User Interface (TUI) menu that allows you to launch all the tools below. 
@@ -33,7 +58,7 @@ A bundled utility providing quick access to:
 ### `manage-services.sh` (Service Utility)
 A service manager script that lets you:
 - List failed `systemd` services using `systemctl --failed`.
-- Interactively start, stop, or restart specific services (supports both `systemctl` and legacy `service` commands).
+- Interactively start, stop, or restart specific services (supports both `systemctl` and legacy `service` commands). Service names are validated against a safe character set and every mutating action requires confirmation.
 
 ### `get-sysreport.sh` (System Health & Troubleshooting)
 Generates an immediate terminal report covering:
@@ -46,13 +71,15 @@ Generates an immediate terminal report covering:
 A performance monitoring menu that allows you to:
 - Show the top 10 memory-consuming processes.
 - Show the top 10 CPU-consuming processes.
-- Send a normal termination signal to a selected process by its PID.
+- Send a normal termination signal to a selected process by its PID, after an
+  explicit confirmation prompt. The PID is validated and checked with `kill -0`
+  before the signal is sent.
 
 ### `audit-users.sh` (Security & File Utilities)
 A quick security audit script that:
-- Identifies users with `sudo` or `wheel` (root) privileges.
-- Scans `/etc/shadow` for any user accounts that have empty passwords.
-- Displays the last 10 successful logins using the `last` command.
+- Lists the *members* of the privileged groups (`root`, `sudo`, `wheel`, `admin`, `adm`) via `getent`.
+- Scans `/etc/shadow` for any user accounts that have empty passwords, reporting each one separately.
+- Displays the last 10 successful logins, falling back through `last` → `lastlog` → `utmpdump` → auth log.
 
 ### `manage-firewall.sh` (Security & File Utilities)
 A firewall abstraction tool that supports both `ufw` and `firewalld`:

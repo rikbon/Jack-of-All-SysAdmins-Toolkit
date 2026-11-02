@@ -11,17 +11,20 @@ show_help() {
 if cli_help_requested "${1:-}"; then show_help; exit 0; fi
 if cli_quiet_requested "${1:-}"; then TOOLKIT_QUIET=1; shift; fi
 
-require_command launchctl
+# `launchctl` is probed by the actions themselves rather than at load time, so
+# `--help` and a usage error still work where launchctl is absent (e.g. CI).
 
 valid_label() {
     [[ "$1" =~ ^[A-Za-z0-9._-]+$ ]]
 }
 
 list_services() {
+    require_command launchctl || return 1
     launchctl list
 }
 
 service_action() {
+    require_command launchctl || return 1
     local action="$1"
     local label="$2"
 
@@ -79,5 +82,5 @@ case "${1:-interactive}" in
             esac
         done
         ;;
-    *) cli_usage_error "${1:-}"; show_help >&2; exit 2 ;;
+    *) cli_usage_error "${1:-}" || true; show_help >&2; exit 2 ;;
 esac

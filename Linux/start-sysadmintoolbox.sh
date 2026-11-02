@@ -3,26 +3,16 @@
 # --- start-sysadmintoolbox.sh ---
 # The master menu for the Linux Toolkit
 
-<<<<<<< HEAD
-# Source globals
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-source "${SCRIPT_DIR}/globals.sh" || exit 1
-=======
-# Resolve the *real* directory of this script, even when invoked through a
-# symlink (e.g. the /usr/local/bin/sysadmin-toolbox shortcut created by
-# install.sh). Without this, `dirname` returns the symlink's parent dir and
-# globals.sh (write_log, colours, ...) isn't found.
+# Resolve the real directory, including when launched through a symlink.
 __SRC="${BASH_SOURCE[0]}"
 while [ -L "$__SRC" ]; do
     __LINK_DIR="$(cd "$(dirname "$__SRC")" >/dev/null 2>&1 && pwd)"
     __SRC="$(readlink "$__SRC")"
-    # Resolve relative symlink paths against the directory holding the link.
     [[ "$__SRC" != /* ]] && __SRC="$__LINK_DIR/$__SRC"
 done
 SCRIPT_DIR="$(cd "$(dirname "$__SRC")" >/dev/null 2>&1 && pwd)"
 unset __SRC __LINK_DIR
-source "${SCRIPT_DIR}/globals.sh"
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
+source "${SCRIPT_DIR}/globals.sh" || exit 1
 
 assert_root
 VERSION="$(<"${SCRIPT_DIR}/../VERSION")"
@@ -30,11 +20,8 @@ VERSION="$(<"${SCRIPT_DIR}/../VERSION")"
 show_main_menu() {
     clear
     echo -e "${CYAN}=================================${NC}"
-<<<<<<< HEAD
     echo -e "${CYAN} Jack-of-All-SysAdmins Linux v${VERSION} ${NC}"
-=======
-    echo -e "${CYAN} Jack-of-All-SysAdmins Linux v2.2.1 ${NC}"
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
+
     echo -e "${CYAN}=================================${NC}"
     echo ""
     echo "1. System Maintenance (Clean, Update)"
@@ -50,25 +37,29 @@ show_main_menu() {
 
 run_script() {
     local script_name="$1"
+    shift
     local script_path="${SCRIPT_DIR}/${script_name}"
-    
-    if [ -f "$script_path" ]; then
-        write_log "Launching $script_name..." "INFO"
-        if bash "$script_path"; then
-            return 0
-        fi
+
+    if [ ! -f "$script_path" ]; then
+        write_log "Script $script_name not found at $script_path" "ERROR"
+        return 1
+    fi
+
+    write_log "Launching $script_name..." "INFO"
+    # Capture the status inside the `if` branch: after `fi`, `$?` is the status
+    # of the `if` statement (always 0), not of the child process.
+    if bash "$script_path" "$@"; then
+        return 0
+    else
         local exit_code=$?
         write_log "$script_name failed (exit code: $exit_code)." "ERROR"
         return "$exit_code"
-    else
-        write_log "Script $script_name not found at $script_path" "ERROR"
-        sleep 2
     fi
 }
 
 while true; do
     show_main_menu
-    read -p "Select a Category: " choice
+    read -r -p "Select a Category: " choice || exit 0
 
     case $choice in
         1)
@@ -79,7 +70,7 @@ while true; do
                 echo "2. System Update (apt/yum/pacman/etc)"
                 echo "B. Back"
                 echo ""
-                read -p "Select an option: " subchoice
+                read -r -p "Select an option: " subchoice || break
                 
                 case $subchoice in
                     1) run_script "cleanup.sh" ; pause_toolkit ;;
@@ -95,7 +86,7 @@ while true; do
                 echo "1. Monitor Disk Space"
                 echo "B. Back"
                 echo ""
-                read -p "Select an option: " subchoice
+                read -r -p "Select an option: " subchoice || break
                 
                 case $subchoice in
                     1) run_script "monitor-disk.sh" ; pause_toolkit ;;
@@ -115,7 +106,7 @@ while true; do
                 echo "2. Manage Firewall Rules"
                 echo "B. Back"
                 echo ""
-                read -p "Select an option: " subchoice
+                read -r -p "Select an option: " subchoice || break
                 
                 case $subchoice in
                     1) run_script "audit-users.sh" ;;

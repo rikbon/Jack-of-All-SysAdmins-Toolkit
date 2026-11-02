@@ -2,8 +2,8 @@
 .vscode/
 
 # Legacy / Unused Scripts
+# NOTE: /build.ps1 is the documented PowerShell build entry point and IS tracked.
 /update.bat
-/build.ps1
 /bkp_*
 
 # Builds / Releases
@@ -26,3 +26,6 @@
 *.tmp
 *.csv
 *.clixml
+
+# Local build staging
+**/.staging/

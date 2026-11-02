@@ -3,9 +3,10 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 source "${SCRIPT_DIR}/globals.sh" || exit 1
 
-show_help() { printf 'Usage: %s [interactive]\n' "$0"; }
+show_help() { printf 'Usage: %s [interactive] [--quiet]\n' "$0"; }
 if cli_help_requested "${1:-}"; then show_help; exit 0; fi
-if [[ -n "${1:-}" && "${1:-}" != "interactive" ]]; then cli_usage_error "$1"; show_help >&2; exit 2; fi
+if cli_quiet_requested "${1:-}"; then TOOLKIT_QUIET=1; shift; fi
+if [[ -n "${1:-}" && "${1:-}" != "interactive" ]]; then cli_usage_error "$1" || true; show_help >&2; exit 2; fi
 
 assert_root
 
@@ -22,30 +23,44 @@ show_menu() {
 
 manage_service() {
     local action=$1
-    read -p "Enter service name (e.g. sshd, nginx): " svc
-    if [ -n "$svc" ]; then
-        if command -v systemctl >/dev/null 2>&1; then
-            run_logged "Running '$action' on service '$svc'" systemctl "$action" "$svc"
-        elif command -v service >/dev/null 2>&1; then
-            run_logged "Running '$action' on service '$svc'" service "$svc" "$action"
-        else
-            write_log "Neither systemctl nor service is available." "ERROR"
-        fi
-    else
+    read -r -p "Enter service name (e.g. sshd, nginx): " svc
+    if [ -z "$svc" ]; then
         write_log "No service specified." "WARN"
+        pause_toolkit
+        return
+    fi
+    # Reject anything that is not a plain unit name before handing it to the
+    # service manager.
+    if [[ ! "$svc" =~ ^[A-Za-z0-9_.@-]+$ ]]; then
+        write_log "Invalid service name: $svc" "ERROR"
+        pause_toolkit
+        return
+    fi
+    read -r -p "Confirm '$action' on '$svc'? (y/N) " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        write_log "Service action cancelled." "INFO"
+        pause_toolkit
+        return
+    fi
+    if command -v systemctl >/dev/null 2>&1; then
+        run_logged "Running '$action' on service '$svc'" systemctl "$action" "$svc"
+    elif command -v service >/dev/null 2>&1; then
+        run_logged "Running '$action' on service '$svc'" service "$svc" "$action"
+    else
+        write_log "Neither systemctl nor service is available." "ERROR"
     fi
     pause_toolkit
 }
 
 while true; do
     show_menu
-    read -p "Select an option: " choice
+    read -r -p "Select an option: " choice
 
     case $choice in
         1)
             write_log "Listing Failed Services:" "INFO"
             if command -v systemctl >/dev/null 2>&1; then
-                systemctl --failed
+                try systemctl --failed --no-pager
             else
                 write_log "systemctl not found. Unable to list failed services easily." "WARN"
             fi

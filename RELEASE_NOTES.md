@@ -1,5 +1,82 @@
-<<<<<<< HEAD
+# Release Notes - v2.5.1
+
+**Date**: 2026-09-30
+**Codename**: "The Clean Bill of Health"
+
+## Bug Fixes
+
+* **Installers were unusable**: `install.sh` and `uninstall.sh` were stored with
+  CRLF line endings, so `bash` rejected them with
+  `set: pipefail\r: invalid option name`. Added `.gitattributes` and normalized
+  every text file to LF; the validation suite now fails on CRLF shell scripts.
+* **Validation always failed**: a `trap ... RETURN` in `validate.sh` fired in the
+  caller's scope, where its variable no longer existed, so the script exited `1`
+  even when every check passed.
+* **Interactive menus could die**: `set -Eeuo pipefail` plus the `ERR` trap
+  aborted the whole TUI when a diagnostic command returned non-zero (a `grep`
+  with no matches, killing a PID owned by another user). Added a `try` helper
+  and applied it across the Linux and macOS tools.
+* **Wrong exit codes logged**: both launchers read `$?` after `if ... fi`, which
+  always yields `0`. Failures were always reported as `failed (exit code: 0)`.
+* **PowerShell 7 incompatibility**: the launcher used `Get-EventLog`, which was
+  removed in PowerShell 7. Replaced with `Get-WinEvent`.
+* **`--quiet` silenced the audit trail**: it suppressed the log file as well as
+  the console. It now silences the console only.
+* **Linux one-liner install fell back to source**: `build.sh` did not produce
+  `Jack-of-All-SysAdmins-Toolkit-linux.tar.gz`, the asset `install.sh` downloads,
+  so the installer always unpacked the whole GitHub repository.
+* **Unknown options crashed instead of printing usage**: `cli_usage_error` returns
+  `2` by design, and under `set -e` that return value tripped the `ERR` trap, so
+  every tool logged `Unexpected failure` and exited `1` instead of `2`.
+* **`--help` could fail on some platforms**: `macOS/manage-services.sh` and
+  `macOS/update-system.sh` probed for `launchctl` / Homebrew before parsing
+  arguments, so `--help` reported a missing command or a missing install first.
+
+## Improvements
+
+* Added a GitHub Actions workflow running the validation suite on Ubuntu, macOS,
+  and Windows, plus a job that rejects CRLF shell scripts.
+* Extended validation to root-level and test shell scripts, added a `shellcheck`
+  pass, and added an archive-layout check for the canonical installer assets.
+* Replaced grep-based tests with behavioural tests of the shared helpers, and
+  added regression tests for the exit-code and `--quiet` bugs.
+* Extracted `Linux/cli.sh` so Linux and macOS expose the same CLI helper surface.
+* `Invoke-AppUpdate.ps1` no longer invokes winget twice, and `SkipPackages` is
+  now matched literally instead of as a regular expression.
+* Process termination on Windows now validates the PID and asks for confirmation.
+* `audit-users.sh` lists privileged group *members* and reports empty-password
+  accounts individually; `manage-services.sh` validates service names and
+  requires confirmation.
+* Documented the validation suite and CI in `README.md` and `docs/Build.md`.
+
+## macOS parity with Linux
+
+The macOS toolkit was diagnostics-only. It now exposes the same tool surface as
+Linux, with native implementations:
+
+* **`audit-users.sh`** (new): lists `admin` group members and any account holding
+  `uid 0`, checks for empty password attributes, and shows recent logins with
+  `last`, `who`, and the unified log as fallbacks.
+* **`cleanup.sh`** (new): `brew cleanup -s`, Homebrew download-cache purge,
+  Time Machine *local* snapshot thinning, rotated log removal, user cache
+  clearing, and per-user temp cleanup.
+* **`manage-firewall.sh`** (new): reports `socketfilterfw` and `pf` state, lists
+  rules, and manages `pf` port rules with confirmation and de-duplication.
+* **`update-system.sh`** (new): covers Homebrew packages and macOS software
+  updates with `--update`, `--list`, and `--upgrade` modes.
+* **`manage-homebrew.sh` removed**: its behaviour is now `update-system.sh`, so
+  the file names match Linux one for one. Existing invocations must be updated.
+
+Both platforms now also share the `--quiet` flag, the `assert_root` helper,
+`read -r -p` prompts, and the same seven-category launcher. Root is asserted per
+tool on macOS instead of globally, keeping the diagnostic tools usable without
+`sudo`.
+
+---
+
 # Release Notes - v2.5.0
+
+**Date**: 2026-09-01
 
 ## v2.5.0
 
@@ -8,37 +85,27 @@
 * Added centralized version metadata and cross-platform validation.
 * Improved command safety, error handling, cleanup safeguards, and CLI help.
 
-=======
 # Release Notes - v2.2.1
 
 **Date**: 2026-06-29
 **Codename**: "One-Click In, One-Click Out"
 
-## 🚀 Update: one-click Uninstall for both platforms
+## Update: one-click Uninstall for both platforms
 Adds an uninstall workflow to match the v2.2.0 install workflow, so the
-entire lifecycle of the SysAdmin Toolbox is a one-liner — install *and* remove.
+entire lifecycle of the SysAdmin Toolbox is a one-liner: install and remove.
 
-### ✨ New Features
-*   **Linux one-liner uninstaller** (`uninstall.sh`): fetches itself just like
-    `install.sh`. Removes the launcher symlink at `/usr/local/bin/sysadmin-toolbox`
-    and the `/opt/sysadmin-toolbox` install dir. Logs under the install dir are
-    relocated to `/var/log/sysadmin-toolbox` by default so they survive the
-    uninstall; rerun with `PURGE_LOGS=1` to delete them too:
-    `PURGE_LOGS=1 sudo -E bash -c "$(curl -fsSL .../uninstall.sh)"`.
-*   **Windows one-liner uninstaller** (`uninstall.ps1`): self-elevating, removes
-    the Start-menu shortcut and the toolkit entry from the system `PATH`, then
-    **renames** `%ProgramFiles%\SysAdminToolbox` to a timestamped backup
-    `SysAdminToolbox_uninstall_YYYYMMDDTHHmmss` so your logs and any local edits
-    survive; re-running the installer lays down a fresh install dir.
-*   **README.md** gains an **Uninstall** section under **Install** with the exact
-    one-liners for both platforms, behavior descriptions, and an explicit note
-    that shared runtime dependencies (`util-linux`/`curl`/`iproute2`;
-    `PSWindowsUpdate`/`winget`/Chocolatey) are intentionally **not** removed.
+### New Features
+* **Linux one-liner uninstaller** (`uninstall.sh`): fetches itself just like
+  `install.sh`. Removes the launcher symlink and installation directory while
+  preserving logs by default.
+* **Windows one-liner uninstaller** (`uninstall.ps1`): self-elevating, removes
+  the Start-menu shortcut and toolkit PATH entry, then renames the installation
+  directory to a timestamped backup.
+* **README.md** documents the exact one-liners and shared dependencies that are
+  intentionally not removed.
 
-### 🛠️ Maintenance & Refactoring
-*   **Version bump** across all manifests → `2.2.1`: `README.md` top-of-file
-    badge, both launcher banners (`Linux/start-sysadmintoolbox.sh`,
-    `Windows/Start-SysAdminToolbox.ps1`), `Windows/build.ps1`.
+### Maintenance & Refactoring
+* Version metadata is maintained centrally in `VERSION`.
 
 ---
 
@@ -47,28 +114,27 @@ entire lifecycle of the SysAdmin Toolbox is a one-liner — install *and* remove
 **Date**: 2026-06-29
 **Codename**: "One-Click Anywhere"
 
-## 🚀 Major Update: One-Click Installers & Install-Site Bug Fixes
-This release turns the SysAdmin Toolbox from "run the launcher from the cloned repo" into a one-command install on both platforms — and fixes a load-path bug that let the dashboard start while silently broken on the installed path.
+## Major Update: One-Click Installers & Install-Site Bug Fixes
+This release turns the SysAdmin Toolbox into a one-command install on both
+platforms and fixes the installed-path load bug.
 
-### ✨ New Features
-*   **Linux one-liner installer** (`install.sh`): detects the distro via `/etc/os-release` (apt / dnf / yum / pacman / apk / zypper + their derivatives), installs **every** runtime dependency the kit needs (`util-linux`, `gawk`, `curl`, `iproute2`, `iputils-ping`, `coreutils`, `procps`), downloads the latest release (falls back to the `main` branch tarball if no release is published), and installs to `/opt/sysadmin-toolbox` with a `/usr/local/bin/sysadmin-toolbox` symlink.
-*   **Windows one-liner installer** (`install.ps1`): sets the local execution policy, self-elevates to Administrator, bootstraps `PowerShellGet` + `PSWindowsUpdate` + `winget` + Chocolatey where they're missing, installs to `%ProgramFiles%\SysAdminToolbox`, adds the directory to the system PATH, and drops a Start-menu shortcut — so `sysadmin-toolbox` works from any PowerShell or Command Prompt.
-*   **Release archive convention** (`build.ps1`): now emits both the classic `SysAdminToolbox_v2.2.0.zip` and the canonical `Jack-of-All-SysAdmins-Toolkit-windows.zip` / `-linux.tar.gz` assets that the one-liners curl/wget. Publishing all of them as GitHub Release assets lets the installers grab a proper release rather than the main-branch fallback.
-*   **Linux "Last Logins" fallback chain** (`Linux/audit-users.sh`): the Security menu option "Show last 10 successful logins" no longer just prints `last: command not found` on minimal installs and containers. It now tries `last`, then `lastlog`, then `utmpdump /var/log/wtmp`, then a grep over `/var/log/auth.log` and `/var/log/secure`.
-*   **README.md** gains a prominent **Install (one-liner)** section with the exact commands for both platforms and an explanation of what each does.
+### New Features
+* **Linux one-liner installer** (`install.sh`) detects the distro, installs
+  runtime dependencies, downloads the release, and creates the launcher.
+* **Windows one-liner installer** (`install.ps1`) installs dependencies, adds
+  the system PATH entry, and creates a Start-menu shortcut.
+* **Release archive convention** (`build.ps1`) emits canonical Windows and
+  Linux assets alongside the classic Windows archive.
+* **Linux Last Logins fallback chain** (`Linux/audit-users.sh`) tries `last`,
+  `lastlog`, `utmpdump`, and authentication logs.
+* **README.md** documents the one-liner installers.
 
-### 🛠️ Maintenance & Refactoring
-*   Launcher version banners bumped to `v2.2.0` (`Linux/start-sysadmintoolbox.sh`, `Windows/Start-SysAdminToolbox.ps1`).
-*   **README.md** top-of-file version badge updated to `2.2.0`.
-*   Workspace-version strings in `Windows/build.ps1` bumped from `1.3.0` to `2.2.0`.
-
-### 🐛 Bug Fixes
-*   **`write_log: command not found` through the `/usr/local/bin/sysadmin-toolbox` symlink**: the launcher resolved `SCRIPT_DIR` from `${BASH_SOURCE[0]}` directly, which on the installer's symlink returned the symlink's *owner* dir (`/usr/local/bin`) instead of the launcher's real dir. `source globals.sh` then silently failed (the launcher doesn't `set -e`), leaving `write_log`, `assert_root`, and all colour codes undefined so any error path printed the literal `write_log: command not found`. The launcher now follows the symlink chain via `readlink` (no `realpath` dependency) before sourcing globals.
+### Bug Fixes
+* The Linux launcher follows symlinks before sourcing `globals.sh`.
 
 ---
 
 # Release Notes - v1.3.0
->>>>>>> d195c5a4a0a263f554b9a72b7e90e0dade4a66e9
 
 **Date**: 2026-03-11
 **Codename**: "The Parallel Patch & Polish"

@@ -3,9 +3,10 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
 source "${SCRIPT_DIR}/globals.sh" || exit 1
 
-show_help() { printf 'Usage: %s [interactive]\n' "$0"; }
+show_help() { printf 'Usage: %s [interactive] [--quiet]\n' "$0"; }
 if cli_help_requested "${1:-}"; then show_help; exit 0; fi
-if [[ -n "${1:-}" && "${1:-}" != "interactive" ]]; then cli_usage_error "$1"; show_help >&2; exit 2; fi
+if cli_quiet_requested "${1:-}"; then TOOLKIT_QUIET=1; shift; fi
+if [[ -n "${1:-}" && "${1:-}" != "interactive" ]]; then cli_usage_error "$1" || true; show_help >&2; exit 2; fi
 
 assert_root
 
@@ -37,7 +38,7 @@ while true; do
         break
     fi
 
-    read -p "Select an option: " choice
+    read -r -p "Select an option: " choice
 
     case $choice in
         1)
@@ -46,7 +47,7 @@ while true; do
             pause_toolkit
             ;;
         2)
-            read -p "Enter port number to allow (e.g. 80, 443): " port
+            read -r -p "Enter port number to allow (e.g. 80, 443): " port
             if valid_port "$port"; then
                 if [ "$FW" == "ufw" ]; then
                     run_logged "Allowing port $port/tcp" ufw allow "$port/tcp"
@@ -59,7 +60,7 @@ while true; do
             pause_toolkit
             ;;
         3)
-            read -p "Enter port number to deny (e.g. 80, 443): " port
+            read -r -p "Enter port number to deny (e.g. 80, 443): " port
             if valid_port "$port"; then
                 if [ "$FW" == "ufw" ]; then
                     run_logged "Denying port $port/tcp" ufw deny "$port/tcp"

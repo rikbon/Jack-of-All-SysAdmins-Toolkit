@@ -53,5 +53,5 @@ case "${1:-interactive}" in
             esac
         done
         ;;
-    *) cli_usage_error "${1:-}"; show_help >&2; exit 2 ;;
+    *) cli_usage_error "${1:-}" || true; show_help >&2; exit 2 ;;
 esac
